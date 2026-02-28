@@ -354,9 +354,9 @@
   .zukan-era-count { font-size:10px; color:rgba(245,240,232,.35); }
   .zukan-chars-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
   .zukan-char-card {
-    aspect-ratio:1; border-radius:8px; border:1.5px solid rgba(255,255,255,.08);
+    aspect-ratio:3/4; border-radius:8px; border:1.5px solid rgba(255,255,255,.08);
     background:rgba(255,255,255,.03); display:flex; flex-direction:column; align-items:center; justify-content:center;
-    padding:4px; cursor:pointer; transition:all .2s; position:relative; font-size:26px;
+    padding:0; cursor:pointer; transition:all .2s; position:relative; overflow:hidden;
   }
   .zukan-char-card.unlocked { border-color:rgba(255,255,255,.2); background:rgba(255,255,255,.06); }
   .zukan-char-card.unlocked.SR { border-color:var(--gold); background:rgba(212,160,23,.1); }
@@ -365,7 +365,7 @@
   .zukan-char-rarity { position:absolute; top:2px; right:3px; font-size:6px; font-weight:900; }
   .zukan-char-rarity.SR { color:var(--gold); }
   .zukan-char-rarity.R { color:#4080ff; }
-  .zukan-char-label { font-size:7px; color:rgba(245,240,232,.4); text-align:center; margin-top:2px; line-height:1.2; }
+  .zukan-char-label { position:absolute; bottom:0; left:0; right:0; font-size:6.5px; color:rgba(245,240,232,.9); text-align:center; padding:2px 1px; background:rgba(0,0,0,0.65); line-height:1.3; }
 
   /* ═══ CHAR MODAL ═══ */
   .char-modal {
@@ -625,18 +625,15 @@
       <button class="back-btn" onclick="showTitle()">← もどる</button>
       <h2>⚙ 管理画面</h2>
     </div>
-    <div class="admin-header-sub">ADMIN — NOTION連携 & データ管理</div>
+    <div class="admin-header-sub">ADMIN — データ管理</div>
   </div>
   <div class="admin-stats" id="adminStats"></div>
   <div class="admin-section" style="margin-top:20px">
-    <div class="admin-section-title">🔗 Notion API連携</div>
-    <div class="form-group">
-      <label class="form-label">Notion API Key (secret_xxx...)</label>
-      <input type="text" class="form-input" id="notionApiInput" placeholder="secret_xxxxxxxx...">
-    </div>
-    <button class="admin-btn admin-btn-green" onclick="saveNotionKey()">APIキーを保存</button>
-    <button class="admin-btn admin-btn-gray" onclick="syncFromNotion()">手動同期 ↻</button>
-    <div class="admin-log" id="adminLog">管理ログ待機中...\n</div>
+    <div class="admin-section-title">📥 問題データ</div>
+    <p style="font-size:12px;color:rgba(245,240,232,.5);margin:0 0 10px">最終同期: <span id="adminLastSync">—</span></p>
+    <button class="admin-btn admin-btn-green" onclick="manualReload()">questions.json を再読込 ↻</button>
+    <div class="admin-log" id="adminLog">管理ログ待機中...
+</div>
   </div>
   <div class="admin-section" style="margin-top:20px;padding-bottom:40px">
     <div class="admin-section-title">⚠ データリセット</div>
@@ -660,8 +657,7 @@
 
 <script>
 const ADMIN_PASSWORD = 'poopoo0730';
-const NOTION_DB_ID   = '518d967babdf4bddb687264b1999d75b';
-const LS = { PROGRESS:'nihonshi_progress_v2', UNLOCKED:'nihonshi_unlocked_v2', NOTION_KEY:'nihonshi_notion_key', NOTION_CACHE:'nihonshi_notion_cache' };
+const LS = { PROGRESS:'nihonshi_progress_v2', UNLOCKED:'nihonshi_unlocked_v2' };
 const DIFF_LABELS = { easy:'★ やさしい', normal:'★★ ふつう', hard:'★★★ むずかしい' };
 
 const ERAS = [
@@ -676,84 +672,82 @@ const ERAS = [
 ];
 
 const ALL_CHARS = [
-  { id:'jomon_1',    eraId:'jomon',    rarity:'SR', emoji:'🏺', name:'縄文のまじない師',   desc:'深い森の中で土偶を作り続けた古の呪術師。自然の霊力を操り、集落を守護する。', skill:'土偶召喚 — 失点を1問帳消しにする神秘の力！' },
-  { id:'jomon_2',    eraId:'jomon',    rarity:'R',  emoji:'🐚', name:'貝塚の記憶番',       desc:'貝塚に残された記録を守り続ける語り部。食文化の歴史を知り尽くしている。', skill:'貝記録 — 正解時のポイントが2倍になる！' },
-  { id:'jomon_3',    eraId:'jomon',    rarity:'N',  emoji:'🌾', name:'弥生の稲作少女',     desc:'田んぼで汗を流す勤勉な農村の娘。稲作の知恵と水路の読み方を父から習った。', skill:'豊穣の舞 — ヒントを1回無料で使える！' },
-  { id:'jomon_4',    eraId:'jomon',    rarity:'N',  emoji:'🗝️', name:'邪馬台国の使者',     desc:'卑弥呼に仕え、魏の都へ貢ぎ物を届けた外交官。遠い海を渡った勇気の持ち主。', skill:'外交術 — 誤答のダメージを軽減する！' },
-  { id:'jomon_5',    eraId:'jomon',    rarity:'N',  emoji:'🔔', name:'銅鐸の職人',         desc:'精緻な銅鐸を鋳造し続けた弥生の名工。その音色は村の平和を呼ぶといわれた。', skill:'祭音 — 問題開始時に全員の士気を高める！' },
-  { id:'kofun_1',    eraId:'kofun',    rarity:'SR', emoji:'👑', name:'聖徳太子の霊光',     desc:'十七条の憲法を制定し、仏教を広めた偉大な摂政。一度に十人の声を聞いたという伝説も。', skill:'十人の声 — 次の問題の選択肢を2択に絞れる！' },
-  { id:'kofun_2',    eraId:'kofun',    rarity:'R',  emoji:'🕊️', name:'遣隋使の旅人',       desc:'危険な海を越えて隋に渡った外交使節。文化と知識を日本に持ち帰るために命がけだった。', skill:'海路の知恵 — ヒントの精度が上がる！' },
-  { id:'kofun_3',    eraId:'kofun',    rarity:'N',  emoji:'🪖', name:'大化の改新兵士',     desc:'中大兄皇子とともに蘇我氏を倒した改革の一員。律令国家への大転換を支えた無名の英雄。', skill:'改革の剣 — 正解連続3問でボーナス！' },
-  { id:'kofun_4',    eraId:'kofun',    rarity:'N',  emoji:'🛕', name:'法隆寺の大工',       desc:'世界最古の木造建築を手がけた飛鳥の名匠。1400年以上経った今も建物は現存している。', skill:'匠の技 — 建築知識で加点ボーナス！' },
-  { id:'kofun_5',    eraId:'kofun',    rarity:'N',  emoji:'🐎', name:'はにわの馬',         desc:'古墳に埋葬された素焼きの馬形埴輪。死者の魂とともに次の世界へ旅する守護の使者。', skill:'魂の疾走 — タイムボーナス2倍！' },
-  { id:'nara_1',     eraId:'nara',     rarity:'SR', emoji:'🦌', name:'奈良の大仏守',       desc:'東大寺の大仏を毎日清め続ける僧侶。仏の加護で天下泰平を願い続けた生涯。', skill:'仏陀の加護 — 不正解を正解に変える奇跡！' },
-  { id:'nara_2',     eraId:'nara',     rarity:'R',  emoji:'📜', name:'紫式部の侍女',       desc:'源氏物語の執筆を手伝った才女。美しい仮名文字で物語を書き写し続けた。', skill:'かな書法 — テキスト系問題に強化ボーナス！' },
-  { id:'nara_3',     eraId:'nara',     rarity:'N',  emoji:'⛵', name:'鑑真の渡来弟子',     desc:'盲目になりながらも日本へ渡り仏法を伝えた鑑真和上の高弟。不屈の精神を継承する。', skill:'不屈の信念 — 最後の問題で逆転できる！' },
-  { id:'nara_4',     eraId:'nara',     rarity:'N',  emoji:'🌺', name:'平安の歌詠み人',     desc:'百人一首に選ばれた歌人。恋と自然を詠んだ和歌は千年後も人々の心を打つ。', skill:'歌の力 — ヒントが詩的に表示される！' },
-  { id:'nara_5',     eraId:'nara',     rarity:'N',  emoji:'🍵', name:'空海の薬師',         desc:'高野山に籠り秘薬を調合し続けた真言宗の僧医。密教の神秘と医術を兼ね備える。', skill:'秘薬調合 — 残り時間が延長される！' },
-  { id:'kamakura_1', eraId:'kamakura', rarity:'SR', emoji:'🏹', name:'源義経の影武者',     desc:'壇ノ浦で平家を滅ぼした伝説の武将の影。奇策の天才として今も語り継がれる。', skill:'奇策 — ランダムに難問をやさしい問題に変える！' },
-  { id:'kamakura_2', eraId:'kamakura', rarity:'R',  emoji:'⛈️', name:'元寇の神風',         desc:'二度にわたる元の大軍を吹き飛ばした神秘の風。日本を守護する自然の力の化身。', skill:'神風加護 — 1問だけ誤答を帳消しにする！' },
-  { id:'kamakura_3', eraId:'kamakura', rarity:'N',  emoji:'🌿', name:'親鸞の旅僧',         desc:'悪人正機説を説きながら各地を放浪した浄土真宗の祖の弟子。民衆に仏の慈悲を伝えた。', skill:'悪人正機 — 誤答してもポイントが入る特殊技！' },
-  { id:'kamakura_4', eraId:'kamakura', rarity:'N',  emoji:'🏯', name:'足利義満の能役者',   desc:'金閣寺の庭で能を演じた室町時代の芸術家。世阿弥の教えを受けた幽玄の体現者。', skill:'幽玄の演技 — 正解時に美しいエフェクト発動！' },
-  { id:'kamakura_5', eraId:'kamakura', rarity:'N',  emoji:'📿', name:'御成敗式目の書記',   desc:'泰時の命で日本初の武家法典を書き記した法律家。公正な裁きの精神を後世に伝えた。', skill:'法の番人 — 問題文の誤りを指摘できる！' },
-  { id:'sengoku_1',  eraId:'sengoku',  rarity:'SR', emoji:'🔥', name:'織田信長の鉄砲隊長', desc:'長篠の戦いで三段撃ちを指揮した革命的軍事家。旧来の騎馬戦法を打ち破った天才戦術家。', skill:'三段撃ち — 連続正解で攻撃力が3倍に！' },
-  { id:'sengoku_2',  eraId:'sengoku',  rarity:'R',  emoji:'🌺', name:'千利休の茶人',       desc:'わびの心を極めた茶の湯の大家。秀吉に仕えながらも美意識を貫き通した芸術家。', skill:'わびさびの心 — 冷静に解いて正答率アップ！' },
-  { id:'sengoku_3',  eraId:'sengoku',  rarity:'N',  emoji:'⚓', name:'南蛮貿易商',         desc:'ポルトガルとの交易で富を築いた堺の商人。鉄砲・火薬・香辛料を日本にもたらした。', skill:'貿易の知識 — 外来語問題に強くなる！' },
-  { id:'sengoku_4',  eraId:'sengoku',  rarity:'N',  emoji:'🗺️', name:'太閤検地の測量士',   desc:'全国を歩き回り田畑の石高を測定した豊臣の役人。秀吉の天下統一を数字で支えた。', skill:'精密測量 — 数字・年号問題の正答率UP！' },
-  { id:'sengoku_5',  eraId:'sengoku',  rarity:'N',  emoji:'🏰', name:'安土城の建築士',     desc:'信長の夢を形にした革命的な城郭建築家。五重の天主閣は天下布武の象徴だった。', skill:'天守の眼 — 問題の難易度が見えるようになる！' },
-  { id:'edo_1',      eraId:'edo',      rarity:'SR', emoji:'🌸', name:'松尾芭蕉の弟子',     desc:'俳聖芭蕉とともに奥の細道を旅した俳人。自然の美を17文字に封じ込める達人。', skill:'俳句の力 — 心が落ち着き正答率10%UP！' },
-  { id:'edo_2',      eraId:'edo',      rarity:'R',  emoji:'🗾', name:'伊能忠敬の助手',     desc:'50歳を過ぎた師匠とともに全国を測量して歩いた弟子。努力と精密さを体現する人物。', skill:'精密測量術 — 答えの選択肢が1つ消える！' },
-  { id:'edo_3',      eraId:'edo',      rarity:'N',  emoji:'🎭', name:'歌舞伎役者',         desc:'江戸の庶民を魅了した人気役者。荒事・和事を演じ分け、江戸文化の中心にいた。', skill:'七変化 — 問題の形式が変わり新鮮になる！' },
-  { id:'edo_4',      eraId:'edo',      rarity:'N',  emoji:'📚', name:'本居宣長の書生',     desc:'古事記伝を書き記した国学者の弟子。もののあはれの心で日本文化の本質を探求した。', skill:'国学の眼 — 古典問題に特化ボーナス！' },
-  { id:'edo_5',      eraId:'edo',      rarity:'N',  emoji:'🏮', name:'元禄の瓦版屋',       desc:'元禄文化の最新情報を江戸中に伝えた情報屋。浮世草子・人形浄瑠璃の話題通。', skill:'瓦版速報 — 知識問題のヒントが自動表示！' },
-  { id:'meiji_1',    eraId:'meiji',    rarity:'SR', emoji:'🚂', name:'岩倉使節団の書記官', desc:'欧米12ヶ国を視察し近代化の知識を持ち帰った明治の俊英。日本の文明開化を設計した。', skill:'欧米の智 — 近代史問題の正答率2倍！' },
-  { id:'meiji_2',    eraId:'meiji',    rarity:'R',  emoji:'⚖️', name:'自由民権の演説者',   desc:'板垣退助の思想を地方に広めた政治活動家。民主主義の種を全国に蒔いた情熱の人。', skill:'民権演説 — 時間制限が延長される！' },
-  { id:'meiji_3',    eraId:'meiji',    rarity:'N',  emoji:'📰', name:'大正デモクラシーの記者', desc:'普通選挙を求めて筆を執り続けた記者。吉野作造の民本主義を広めた言論の士。', skill:'ペンの力 — 文章題の読解力がUP！' },
-  { id:'meiji_4',    eraId:'meiji',    rarity:'N',  emoji:'🏭', name:'富岡製糸場の工女',   desc:'群馬の官営工場で近代的な製糸技術を習得した少女。日本の産業革命を底で支えた。', skill:'勤勉の心 — 連続正解時の得点が増加！' },
-  { id:'meiji_5',    eraId:'meiji',    rarity:'N',  emoji:'⚓', name:'日露戦争の水兵',     desc:'東郷平八郎の艦隊でバルチック艦隊と戦った若き水兵。日本海海戦の奇跡を生き延びた。', skill:'海戦の勇気 — ピンチの時に逆転打が出やすい！' },
-  { id:'showa_1',    eraId:'showa',    rarity:'SR', emoji:'🕊️', name:'戦後復興の建築士',   desc:'焼け野原から日本を再建した技術者。1964年東京オリンピックの競技場も手がけた。', skill:'復興の力 — 誤答後に倍速で回復できる！' },
-  { id:'showa_2',    eraId:'showa',    rarity:'R',  emoji:'💹', name:'高度成長期の社員',   desc:'24時間働いたサラリーマン世代。日本を世界第2位の経済大国に押し上げた礎。', skill:'経済力 — 解答するごとに得点が複利で増える！' },
-  { id:'showa_3',    eraId:'showa',    rarity:'N',  emoji:'📡', name:'東京五輪の聖火ランナー', desc:'1964年の開会式で聖火を運んだ広島生まれの陸上選手。平和と希望を体現した走者。', skill:'聖火の光 — 全問正解時に特別ボーナス！' },
-  { id:'showa_4',    eraId:'showa',    rarity:'N',  emoji:'🌺', name:'安保闘争の学生',     desc:'1960年代に時代と格闘した全学連の活動家。民主主義への熱い情熱を持ち続けた。', skill:'時代の闘士 — 現代史問題の正答率UP！' },
-  { id:'showa_5',    eraId:'showa',    rarity:'N',  emoji:'🌸', name:'ヒロシマの乙女',     desc:'広島・長崎への原爆投下を生き延びた人々の総称。平和の大切さを語り継ぐ語り部として後世に伝え続けている。', skill:'平和の祈り — 戦闘を終わらせる最後の力！' },
+  { id:'jomon_1',    eraId:'jomon',    rarity:'SR', emoji:'🏺', name:'縄文のまじない師',       desc:'深い森の中で土偶を作り続けた古の呪術師。自然の霊力を操り、集落を守護する。',                                         skill:'土偶召喚 — 失点を1問帳消しにする神秘の力！' },
+  { id:'jomon_2',    eraId:'jomon',    rarity:'R',  emoji:'🐚', name:'貝塚の記憶番',           desc:'貝塚に残された記録を守り続ける語り部。食文化の歴史を知り尽くしている。',                                             skill:'貝記録 — 正解時のポイントが2倍になる！' },
+  { id:'jomon_3',    eraId:'jomon',    rarity:'N',  emoji:'🌾', name:'弥生の稲作少女',         desc:'田んぼで汗を流す勤勉な農村の娘。稲作の知恵と水路の読み方を父から習った。',                                           skill:'豊穣の舞 — ヒントを1回無料で使える！' },
+  { id:'jomon_4',    eraId:'jomon',    rarity:'N',  emoji:'🗝️', name:'邪馬台国の使者',         desc:'卑弥呼に仕え、魏の都へ貢ぎ物を届けた外交官。遠い海を渡った勇気の持ち主。',                                           skill:'外交術 — 誤答のダメージを軽減する！' },
+  { id:'jomon_5',    eraId:'jomon',    rarity:'N',  emoji:'🔔', name:'銅鐸の職人',             desc:'精緻な銅鐸を鋳造し続けた弥生の名工。その音色は村の平和を呼ぶといわれた。',                                           skill:'祭音 — 問題開始時に全員の士気を高める！' },
+  { id:'kofun_1',    eraId:'kofun',    rarity:'SR', emoji:'👑', name:'聖徳太子の霊光',         desc:'十七条の憲法を制定し、仏教を広めた偉大な摂政。一度に十人の声を聞いたという伝説も。',                                 skill:'十人の声 — 次の問題の選択肢を2択に絞れる！' },
+  { id:'kofun_2',    eraId:'kofun',    rarity:'R',  emoji:'🕊️', name:'遣隋使の旅人',           desc:'危険な海を越えて隋に渡った外交使節。文化と知識を日本に持ち帰るために命がけだった。',                                 skill:'海路の知恵 — ヒントの精度が上がる！' },
+  { id:'kofun_3',    eraId:'kofun',    rarity:'N',  emoji:'🪖', name:'大化の改新兵士',         desc:'中大兄皇子とともに蘇我氏を倒した改革の一員。律令国家への大転換を支えた無名の英雄。',                                 skill:'改革の剣 — 正解連続3問でボーナス！' },
+  { id:'kofun_4',    eraId:'kofun',    rarity:'N',  emoji:'🛕', name:'法隆寺の大工',           desc:'世界最古の木造建築を手がけた飛鳥の名匠。1400年以上経った今も建物は現存している。',                                   skill:'匠の技 — 建築知識で加点ボーナス！' },
+  { id:'kofun_5',    eraId:'kofun',    rarity:'N',  emoji:'🐎', name:'はにわの馬',             desc:'古墳に埋葬された素焼きの馬形埴輪。死者の魂とともに次の世界へ旅する守護の使者。',                                     skill:'魂の疾走 — タイムボーナス2倍！' },
+  { id:'nara_1',     eraId:'nara',     rarity:'SR', emoji:'🦌', name:'奈良の大仏守',           desc:'東大寺の大仏を毎日清め続ける僧侶。仏の加護で天下泰平を願い続けた生涯。',                                             skill:'仏陀の加護 — 不正解を正解に変える奇跡！' },
+  { id:'nara_2',     eraId:'nara',     rarity:'R',  emoji:'📜', name:'紫式部の侍女',           desc:'源氏物語の執筆を手伝った才女。美しい仮名文字で物語を書き写し続けた。',                                               skill:'かな書法 — テキスト系問題に強化ボーナス！' },
+  { id:'nara_3',     eraId:'nara',     rarity:'N',  emoji:'⛵', name:'鑑真の渡来弟子',         desc:'盲目になりながらも日本へ渡り仏法を伝えた鑑真和上の高弟。不屈の精神を継承する。',                                     skill:'不屈の信念 — 最後の問題で逆転できる！' },
+  { id:'nara_4',     eraId:'nara',     rarity:'N',  emoji:'🌺', name:'平安の歌詠み人',         desc:'百人一首に選ばれた歌人。恋と自然を詠んだ和歌は千年後も人々の心を打つ。',                                             skill:'歌の力 — ヒントが詩的に表示される！' },
+  { id:'nara_5',     eraId:'nara',     rarity:'N',  emoji:'🍵', name:'空海の薬師',             desc:'高野山に籠り秘薬を調合し続けた真言宗の僧医。密教の神秘と医術を兼ね備える。',                                         skill:'秘薬調合 — 残り時間が延長される！' },
+  { id:'kamakura_1', eraId:'kamakura', rarity:'SR', emoji:'🏹', name:'源義経の影武者',         desc:'壇ノ浦で平家を滅ぼした伝説の武将の影。奇策の天才として今も語り継がれる。',                                           skill:'奇策 — ランダムに難問をやさしい問題に変える！' },
+  { id:'kamakura_2', eraId:'kamakura', rarity:'R',  emoji:'⛈️', name:'元寇の神風',             desc:'二度にわたる元の大軍を吹き飛ばした神秘の風。日本を守護する自然の力の化身。',                                         skill:'神風加護 — 1問だけ誤答を帳消しにする！' },
+  { id:'kamakura_3', eraId:'kamakura', rarity:'N',  emoji:'🌿', name:'親鸞の旅僧',             desc:'悪人正機説を説きながら各地を放浪した浄土真宗の祖の弟子。民衆に仏の慈悲を伝えた。',                                   skill:'悪人正機 — 誤答してもポイントが入る特殊技！' },
+  { id:'kamakura_4', eraId:'kamakura', rarity:'N',  emoji:'🏯', name:'足利義満の能役者',       desc:'金閣寺の庭で能を演じた室町時代の芸術家。世阿弥の教えを受けた幽玄の体現者。',                                         skill:'幽玄の演技 — 正解時に美しいエフェクト発動！' },
+  { id:'kamakura_5', eraId:'kamakura', rarity:'N',  emoji:'📿', name:'御成敗式目の書記',       desc:'泰時の命で日本初の武家法典を書き記した法律家。公正な裁きの精神を後世に伝えた。',                                     skill:'法の番人 — 問題文の誤りを指摘できる！' },
+  { id:'sengoku_1',  eraId:'sengoku',  rarity:'SR', emoji:'🔥', name:'織田信長の鉄砲隊長',     desc:'長篠の戦いで三段撃ちを指揮した革命的軍事家。旧来の騎馬戦法を打ち破った天才戦術家。',                                 skill:'三段撃ち — 連続正解で攻撃力が3倍に！' },
+  { id:'sengoku_2',  eraId:'sengoku',  rarity:'R',  emoji:'🌺', name:'千利休の茶人',           desc:'わびの心を極めた茶の湯の大家。秀吉に仕えながらも美意識を貫き通した芸術家。',                                         skill:'わびさびの心 — 冷静に解いて正答率アップ！' },
+  { id:'sengoku_3',  eraId:'sengoku',  rarity:'N',  emoji:'⚓', name:'南蛮貿易商',             desc:'ポルトガルとの交易で富を築いた堺の商人。鉄砲・火薬・香辛料を日本にもたらした。',                                     skill:'貿易の知識 — 外来語問題に強くなる！' },
+  { id:'sengoku_4',  eraId:'sengoku',  rarity:'N',  emoji:'🗺️', name:'太閤検地の測量士',       desc:'全国を歩き回り田畑の石高を測定した豊臣の役人。秀吉の天下統一を数字で支えた。',                                       skill:'精密測量 — 数字・年号問題の正答率UP！' },
+  { id:'sengoku_5',  eraId:'sengoku',  rarity:'N',  emoji:'🏰', name:'安土城の建築士',         desc:'信長の夢を形にした革命的な城郭建築家。五重の天主閣は天下布武の象徴だった。',                                         skill:'天守の眼 — 問題の難易度が見えるようになる！' },
+  { id:'edo_1',      eraId:'edo',      rarity:'SR', emoji:'🌸', name:'松尾芭蕉の弟子',         desc:'俳聖芭蕉とともに奥の細道を旅した俳人。自然の美を17文字に封じ込める達人。',                                           skill:'俳句の力 — 心が落ち着き正答率10%UP！' },
+  { id:'edo_2',      eraId:'edo',      rarity:'R',  emoji:'🗾', name:'伊能忠敬の助手',         desc:'50歳を過ぎた師匠とともに全国を測量して歩いた弟子。努力と精密さを体現する人物。',                                     skill:'精密測量術 — 答えの選択肢が1つ消える！' },
+  { id:'edo_3',      eraId:'edo',      rarity:'N',  emoji:'🎭', name:'歌舞伎役者',             desc:'江戸の庶民を魅了した人気役者。荒事・和事を演じ分け、江戸文化の中心にいた。',                                         skill:'七変化 — 問題の形式が変わり新鮮になる！' },
+  { id:'edo_4',      eraId:'edo',      rarity:'N',  emoji:'📚', name:'本居宣長の書生',         desc:'古事記伝を書き記した国学者の弟子。もののあはれの心で日本文化の本質を探求した。',                                     skill:'国学の眼 — 古典問題に特化ボーナス！' },
+  { id:'edo_5',      eraId:'edo',      rarity:'N',  emoji:'🏮', name:'元禄の瓦版屋',           desc:'元禄文化の最新情報を江戸中に伝えた情報屋。浮世草子・人形浄瑠璃の話題通。',                                           skill:'瓦版速報 — 知識問題のヒントが自動表示！' },
+  { id:'meiji_1',    eraId:'meiji',    rarity:'SR', emoji:'🚂', name:'岩倉使節団の書記官',     desc:'欧米12ヶ国を視察し近代化の知識を持ち帰った明治の俊英。日本の文明開化を設計した。',                                   skill:'欧米の智 — 近代史問題の正答率2倍！' },
+  { id:'meiji_2',    eraId:'meiji',    rarity:'R',  emoji:'⚖️', name:'自由民権の演説者',       desc:'板垣退助の思想を地方に広めた政治活動家。民主主義の種を全国に蒔いた情熱の人。',                                       skill:'民権演説 — 時間制限が延長される！' },
+  { id:'meiji_3',    eraId:'meiji',    rarity:'N',  emoji:'📰', name:'大正デモクラシーの記者', desc:'普通選挙を求めて筆を執り続けた記者。吉野作造の民本主義を広めた言論の士。',                                           skill:'ペンの力 — 文章題の読解力がUP！' },
+  { id:'meiji_4',    eraId:'meiji',    rarity:'N',  emoji:'🏭', name:'富岡製糸場の工女',       desc:'群馬の官営工場で近代的な製糸技術を習得した少女。日本の産業革命を底で支えた。',                                       skill:'勤勉の心 — 連続正解時の得点が増加！' },
+  { id:'meiji_5',    eraId:'meiji',    rarity:'N',  emoji:'⚓', name:'日露戦争の水兵',         desc:'東郷平八郎の艦隊でバルチック艦隊と戦った若き水兵。日本海海戦の奇跡を生き延びた。',                                   skill:'海戦の勇気 — ピンチの時に逆転打が出やすい！' },
+  { id:'showa_1',    eraId:'showa',    rarity:'SR', emoji:'🕊️', name:'戦後復興の建築士',       desc:'焼け野原から日本を再建した技術者。1964年東京オリンピックの競技場も手がけた。',                                       skill:'復興の力 — 誤答後に倍速で回復できる！' },
+  { id:'showa_2',    eraId:'showa',    rarity:'R',  emoji:'💹', name:'高度成長期の社員',       desc:'24時間働いたサラリーマン世代。日本を世界第2位の経済大国に押し上げた礎。',                                           skill:'経済力 — 解答するごとに得点が複利で増える！' },
+  { id:'showa_3',    eraId:'showa',    rarity:'N',  emoji:'📡', name:'東京五輪の聖火ランナー', desc:'1964年の開会式で聖火を運んだ広島生まれの陸上選手。平和と希望を体現した走者。',                                     skill:'聖火の光 — 全問正解時に特別ボーナス！' },
+  { id:'showa_4',    eraId:'showa',    rarity:'N',  emoji:'🌺', name:'安保闘争の学生',         desc:'1960年代に時代と格闘した全学連の活動家。民主主義への熱い情熱を持ち続けた。',                                         skill:'時代の闘士 — 現代史問題の正答率UP！' },
+  { id:'showa_5',    eraId:'showa',    rarity:'N',  emoji:'🌸', name:'ヒロシマの乙女',         desc:'広島・長崎への原爆投下を生き延びた人々の総称。平和の大切さを語り継ぐ語り部。',                                       skill:'平和の祈り — 戦闘を終わらせる最後の力！' },
 ];
 
 const SECRET_CHARS = [
-  { id:'secret_amaterasu', name:'天照大神',   emoji:'👑', rarity:'SECRET', desc:'高天原を統べる太陽神。日本の神話の最高神であり、天皇家の祖先神とされる。古事記・日本書紀に記された神々の頂点。', skill:'神話の力 — すべての問題の正答率が劇的にアップ！' },
-  { id:'secret_ryoma',     name:'龍馬の亡霊', emoji:'🐉', rarity:'SECRET', desc:'日本の夜明けを夢見た坂本龍馬の亡霊。薩長同盟・大政奉還を陰から支えた時代の鍵。暗殺されてもなお日本の行く末を見守り続ける。', skill:'船中八策 — 間違った選択肢を全部正解に変える荒業！' },
-  { id:'secret_yamato',    name:'ヤマトタケル', emoji:'⛩', rarity:'SECRET', desc:'熊襲・蝦夷を征服した伝説の皇子。草薙の剣を持ち、日本列島統一への道を切り開いた。古事記最大の英雄神話の主人公。', skill:'草薙の剣 — 敵の問題をすべて薙ぎ払う一撃必殺！' },
+  { id:'secret_amaterasu', name:'天照大神',    emoji:'👑', rarity:'SECRET', desc:'高天原を統べる太陽神。日本の神話の最高神であり、天皇家の祖先神とされる。古事記・日本書紀に記された神々の頂点。',                                 skill:'神話の力 — すべての問題の正答率が劇的にアップ！' },
+  { id:'secret_ryoma',     name:'龍馬の亡霊',  emoji:'🐉', rarity:'SECRET', desc:'日本の夜明けを夢見た坂本龍馬の亡霊。薩長同盟・大政奉還を陰から支えた時代の鍵。暗殺されてもなお日本の行く末を見守り続ける。',                   skill:'船中八策 — 間違った選択肢を全部正解に変える荒業！' },
+  { id:'secret_yamato',    name:'ヤマトタケル', emoji:'⛩',  rarity:'SECRET', desc:'熊襲・蝦夷を征服した伝説の皇子。草薙の剣を持ち、日本列島統一への道を切り開いた。古事記最大の英雄神話の主人公。',                               skill:'草薙の剣 — 敵の問題をすべて薙ぎ払う一撃必殺！' },
 ];
 
-// STATE
+// ─── STATE ───────────────────────────────────────
 let currentEra=null, currentDiff=null, currentQuestions=[], currentQIndex=0;
 let score=0, correctCount=0, combo=0, timerInterval=null, timeLeft=20, answered=false;
-let notionQuestions={};
+let allQuestions = {}; // questions.json から読み込んだ問題データ
+let lastSyncTime = null;
 
-// STORAGE
-function loadProgress(){try{return JSON.parse(localStorage.getItem(LS.PROGRESS)||'{}')}catch{return{}}}
-function saveProgress(p){localStorage.setItem(LS.PROGRESS,JSON.stringify(p))}
-function loadUnlocked(){try{return new Set(JSON.parse(localStorage.getItem(LS.UNLOCKED)||'[]'))}catch{return new Set()}}
-function saveUnlocked(s){localStorage.setItem(LS.UNLOCKED,JSON.stringify([...s]))}
-function getNotionKey(){return localStorage.getItem(LS.NOTION_KEY)||''}
-function getNotionCache(){try{return JSON.parse(localStorage.getItem(LS.NOTION_CACHE)||'null')}catch{return null}}
-function setNotionCache(d){localStorage.setItem(LS.NOTION_CACHE,JSON.stringify(d))}
+// ─── STORAGE ─────────────────────────────────────
+const lp = () => { try { return JSON.parse(localStorage.getItem(LS.PROGRESS)||'{}'); } catch { return {}; } };
+const sp = p  => localStorage.setItem(LS.PROGRESS, JSON.stringify(p));
+const lu = () => { try { return new Set(JSON.parse(localStorage.getItem(LS.UNLOCKED)||'[]')); } catch { return new Set(); } };
+const su = s  => localStorage.setItem(LS.UNLOCKED, JSON.stringify([...s]));
 
-// NAVIGATION
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
-function showTitle(){showScreen('screen-title')}
-function showEraSelect(){showScreen('screen-era');renderEraList()}
-function showDiffSelect(){showScreen('screen-difficulty')}
-function showZukan(){showScreen('screen-zukan');renderZukan()}
-function showPassword(){
+// ─── NAVIGATION ──────────────────────────────────
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function showTitle()    { showScreen('screen-title'); }
+function showEraSelect(){ showScreen('screen-era'); renderEraList(); }
+function showDiffSelect(){ showScreen('screen-difficulty'); }
+function showZukan()    { showScreen('screen-zukan'); renderZukan(); }
+function showPassword() {
   showScreen('screen-password');
-  const inp=document.getElementById('pwInput');inp.value='';inp.type='password';
-  document.getElementById('pwError').textContent='';setTimeout(()=>inp.focus(),300);
+  const inp=document.getElementById('pwInput'); inp.value=''; inp.type='password';
+  document.getElementById('pwError').textContent=''; setTimeout(()=>inp.focus(),300);
 }
-function showAdmin(){showScreen('screen-admin');renderAdmin()}
+function showAdmin(){ showScreen('screen-admin'); renderAdmin(); }
 
-// ERA LIST
+// ─── ERA LIST ─────────────────────────────────────
 function renderEraList(){
-  const p=loadProgress();
+  const p=lp();
   const cleared=ERAS.filter(e=>p[e.id]?.cleared).length;
   document.getElementById('eraProgress').textContent=`CHOOSE YOUR ERA — ${cleared}/8クリア`;
   const tl=document.getElementById('eraTimeline'); tl.innerHTML='';
@@ -772,31 +766,26 @@ function renderEraList(){
         </div>
         <div class="era-card-bar" style="background:${era.color};width:${ep.cleared?100:0}%"></div>
       </div>`;
-    item.addEventListener('click',()=>selectEra(era));
+    item.addEventListener('click', ()=>selectEra(era));
     tl.appendChild(item);
   });
 }
-function hexRgb(h){const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return`${r},${g},${b}`}
+function hexRgb(h){ const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16); return`${r},${g},${b}`; }
+function selectEra(era){ currentEra=era; document.getElementById('diffEraTitle').textContent=era.emoji+' '+era.name; showDiffSelect(); }
 
-function selectEra(era){
-  currentEra=era;
-  document.getElementById('diffEraTitle').textContent=era.emoji+' '+era.name;
-  showDiffSelect();
+// ─── QUESTIONS ────────────────────────────────────
+function getQuestions(era, diff){
+  const pool = allQuestions[era.notionName] || [];
+  if(!pool.length) return getFallback(era);
+  let list = diff==='all' ? pool : pool.filter(q=>q.difficulty===DIFF_LABELS[diff]);
+  if(!list.length) list = pool;
+  return shuffle([...list]).slice(0, diff==='all' ? 15 : 5);
+}
+function getFallback(era){
+  return [{ question:`【${era.name}】問題データが見つかりません。`, choices:['GitHubリポジトリを確認','questions.jsonを確認','Actionsが正常か確認','もう一度試す'], answer:3, hint:'管理画面から questions.json を再読込してください' }];
 }
 
-// QUESTIONS
-function getQuestions(era,diff){
-  const cached=notionQuestions[era.notionName]||[];
-  if(!cached.length) return getFallback(era,diff);
-  let pool=diff==='all'?cached:cached.filter(q=>q.difficulty===DIFF_LABELS[diff]);
-  if(!pool.length) return getFallback(era,diff);
-  return shuffle([...pool]).slice(0,diff==='all'?15:5);
-}
-function getFallback(era,diff){
-  return[{question:`【${era.name}】Notionから問題が読み込めませんでした。管理画面でAPIキーを設定してください。`,choices:['設定方法はREADMEを参照','管理画面からAPIキー入力','Notionに問題を追加','この選択肢はダミー'],answer:1,hint:'管理画面 → Notion API連携 → APIキーを保存 → 手動同期'}];
-}
-
-// QUIZ
+// ─── QUIZ ─────────────────────────────────────────
 function startQuiz(diff){
   currentDiff=diff; currentQuestions=getQuestions(currentEra,diff);
   currentQIndex=0; score=0; correctCount=0; combo=0;
@@ -823,7 +812,7 @@ function renderQuestion(){
 }
 function startTimer(){
   timeLeft=20; updateTimerUI();
-  timerInterval=setInterval(()=>{timeLeft--;updateTimerUI();if(timeLeft<=0){clearTimer();if(!answered)timeUp();}},1000);
+  timerInterval=setInterval(()=>{ timeLeft--; updateTimerUI(); if(timeLeft<=0){ clearTimer(); if(!answered) timeUp(); } },1000);
 }
 function updateTimerUI(){
   const pct=(timeLeft/20)*100, bar=document.getElementById('timerBar');
@@ -831,70 +820,64 @@ function updateTimerUI(){
   bar.style.background=pct<30?'var(--red)':pct<60?'linear-gradient(90deg,#ff8800,var(--accent))':'linear-gradient(90deg,var(--gold),var(--accent))';
   document.getElementById('timerText').textContent=timeLeft+'秒';
 }
-function clearTimer(){if(timerInterval){clearInterval(timerInterval);timerInterval=null;}}
+function clearTimer(){ if(timerInterval){ clearInterval(timerInterval); timerInterval=null; } }
 function timeUp(){
   answered=true; combo=0;
   const q=currentQuestions[currentQIndex];
-  document.querySelectorAll('.choice-btn').forEach((b,i)=>{b.classList.add('disabled');if(i===q.answer)b.classList.add('correct');});
+  document.querySelectorAll('.choice-btn').forEach((b,i)=>{ b.classList.add('disabled'); if(i===q.answer) b.classList.add('correct'); });
   document.getElementById('nextQBtn').style.display='block';
 }
 function selectAnswer(sel){
-  if(answered)return; answered=true; clearTimer();
+  if(answered) return; answered=true; clearTimer();
   const q=currentQuestions[currentQIndex];
   const btns=document.querySelectorAll('.choice-btn'); btns.forEach(b=>b.classList.add('disabled'));
   if(sel===q.answer){
     btns[sel].classList.add('correct'); correctCount++; combo++;
     score+=100+(timeLeft*5)+(combo>1?combo*20:0);
-    spawnParticles(btns[sel]); if(combo>=2)showCombo(combo);
+    spawnParticles(btns[sel]); if(combo>=2) showCombo(combo);
   } else {
     btns[sel].classList.add('wrong'); btns[q.answer].classList.add('correct'); combo=0;
-    if(q.hint){document.getElementById('hintText').textContent=q.hint;document.getElementById('hintBubble').classList.add('visible');}
+    if(q.hint){ document.getElementById('hintText').textContent=q.hint; document.getElementById('hintBubble').classList.add('visible'); }
   }
   document.getElementById('scoreDisplay').textContent=score;
   document.getElementById('nextQBtn').style.display='block';
 }
-function nextQuestion(){currentQIndex++;if(currentQIndex>=currentQuestions.length)showResult();else renderQuestion();}
+function nextQuestion(){ currentQIndex++; if(currentQIndex>=currentQuestions.length) showResult(); else renderQuestion(); }
 
-// RESULT
+// ─── RESULT ───────────────────────────────────────
 function showResult(){
   showScreen('screen-result');
   const total=currentQuestions.length, pct=correctCount/total;
   let rank,title;
-  if(pct===1){rank='🏆';title='天　下　人';}
-  else if(pct>=.8){rank='⭐⭐';title='歴史の使い手';}
-  else if(pct>=.6){rank='⭐';title='歴史の見習い';}
-  else if(pct>=.4){rank='📚';title='まだまだ修行中';}
-  else{rank='💀';title='敗者復活を狙え！';}
+  if(pct===1)      { rank='🏆'; title='天　下　人'; }
+  else if(pct>=.8) { rank='⭐⭐'; title='歴史の使い手'; }
+  else if(pct>=.6) { rank='⭐'; title='歴史の見習い'; }
+  else if(pct>=.4) { rank='📚'; title='まだまだ修行中'; }
+  else             { rank='💀'; title='敗者復活を狙え！'; }
   document.getElementById('resultRank').textContent=rank;
   document.getElementById('resultTitle').textContent=title;
   document.getElementById('resultScore').textContent=score;
   document.getElementById('resultCorrect').textContent=`${total}問中 ${correctCount}問正解`;
-  // save progress
-  const p=loadProgress(); if(!p[currentEra.id])p[currentEra.id]={};
+  const p=lp(); if(!p[currentEra.id]) p[currentEra.id]={};
   const ep=p[currentEra.id];
   ep.playCount=(ep.playCount||0)+1; ep.bestScore=Math.max(ep.bestScore||0,score);
-  if(pct===1){if(currentDiff==='all')ep.cleared=true;else{ep[`cleared_${currentDiff}`]=true;if(ep.cleared_easy&&ep.cleared_normal&&ep.cleared_hard)ep.cleared=true;}}
-  saveProgress(p);
-  // gacha
+  if(pct===1){ if(currentDiff==='all') ep.cleared=true; else { ep[`cleared_${currentDiff}`]=true; if(ep.cleared_easy&&ep.cleared_normal&&ep.cleared_hard) ep.cleared=true; } }
+  sp(p);
   const char=drawCharacter(pct);
-  if(char)showGacha(char);else document.getElementById('resultGacha').classList.remove('visible');
+  if(char) showGacha(char); else document.getElementById('resultGacha').classList.remove('visible');
 }
 function drawCharacter(pct){
-  if(pct<.4)return null;
-  const p=loadProgress();
-  const allCleared=ERAS.every(e=>p[e.id]?.cleared);
-  const isPerfect=correctCount===currentQuestions.length;
-  if(allCleared&&isPerfect&&Math.random()<.05){
-    const u=loadUnlocked(),locked=SECRET_CHARS.filter(c=>!u.has(c.id));
-    if(locked.length){const char=locked[Math.floor(Math.random()*locked.length)];u.add(char.id);saveUnlocked(u);return{...char,isNew:true};}
+  if(pct<.4) return null;
+  const p=lp();
+  if(ERAS.every(e=>p[e.id]?.cleared) && correctCount===currentQuestions.length && Math.random()<.05){
+    const u=lu(), locked=SECRET_CHARS.filter(c=>!u.has(c.id));
+    if(locked.length){ const char=locked[Math.floor(Math.random()*locked.length)]; u.add(char.id); su(u); return{...char,isNew:true}; }
   }
   const eraChars=ALL_CHARS.filter(c=>c.eraId===currentEra.id);
   const weights=eraChars.map(c=>c.rarity==='SR'?10:c.rarity==='R'?30:60);
-  const totalW=weights.reduce((a,b)=>a+b,0); let r=Math.random()*totalW;
-  let chosen=eraChars[eraChars.length-1];
-  for(let i=0;i<eraChars.length;i++){r-=weights[i];if(r<=0){chosen=eraChars[i];break;}}
-  const u=loadUnlocked(),isNew=!u.has(chosen.id);
-  u.add(chosen.id);saveUnlocked(u);return{...chosen,isNew};
+  const totalW=weights.reduce((a,b)=>a+b,0); let r=Math.random()*totalW, chosen=eraChars[eraChars.length-1];
+  for(let i=0;i<eraChars.length;i++){ r-=weights[i]; if(r<=0){ chosen=eraChars[i]; break; } }
+  const u=lu(), isNew=!u.has(chosen.id); u.add(chosen.id); su(u); return{...chosen,isNew};
 }
 function showGacha(char){
   document.getElementById('resultGacha').classList.add('visible');
@@ -905,11 +888,11 @@ function showGacha(char){
   document.getElementById('gachaDesc').textContent=char.desc;
   document.getElementById('gachaSkill').textContent=char.skill;
 }
-function replayQuiz(){startQuiz(currentDiff);}
+function replayQuiz(){ startQuiz(currentDiff); }
 
-// ZUKAN
+// ─── ZUKAN ────────────────────────────────────────
 function renderZukan(){
-  const u=loadUnlocked(),p=loadProgress();
+  const u=lu(), p=lp();
   const total=ALL_CHARS.length+SECRET_CHARS.length;
   document.getElementById('zukanProgress').textContent=`${u.size} / ${total} 体獲得`;
   let html='';
@@ -919,101 +902,83 @@ function renderZukan(){
     html+=`<div class="zukan-era-section"><div class="zukan-era-header"><span class="zukan-era-emoji">${era.emoji}</span><span class="zukan-era-name">${era.name}</span><span class="zukan-era-count">${uc}/${eraChars.length}</span></div><div class="zukan-chars-grid">`;
     eraChars.forEach(c=>{
       const ul=u.has(c.id);
-      html+=`<div class="zukan-char-card ${ul?'unlocked '+c.rarity:'locked'}" ${ul?`onclick="showCharModal('${c.id}','normal')"`:''}>${ul?c.emoji:'❔'}<div class="zukan-char-rarity ${ul?c.rarity:''}">${ul?c.rarity:''}</div><div class="zukan-char-label">${ul?c.name:'?'}</div></div>`;
+      html+=`<div class="zukan-char-card ${ul?'unlocked '+c.rarity:'locked'}" ${ul?`onclick="showCharModal('${c.id}','normal')"`:''}>${ul?`<img src="./images/chars/${c.id}.svg" alt="${c.name}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">`:'❔'}<div class="zukan-char-rarity ${ul?c.rarity:''}">${ul?c.rarity:''}</div><div class="zukan-char-label">${ul?c.name:'?'}</div></div>`;
     });
     html+='</div></div>';
   });
-  // シークレット欄は最後
-  const allCleared=ERAS.every(e=>p[e.id]?.cleared);
-  html+='<div class="zukan-secret-section"><div class="zukan-secret-title">✨ シークレットキャラクター</div>';
-  html+='<div class="zukan-secret-chars">';
+  html+='<div class="zukan-secret-section"><div class="zukan-secret-title">✨ シークレットキャラクター</div><div class="zukan-secret-chars">';
   SECRET_CHARS.forEach(c=>{
     const ul=u.has(c.id);
-    html+=`<div class="secret-char-card ${ul?'unlocked':'locked-secret'}" ${ul?`onclick="showCharModal('${c.id}','secret')"`:''}><div class="secret-emoji">${ul?c.emoji:'❓'}</div><div class="secret-name">${ul?c.name:'???'}</div><div class="secret-hint">${ul?'獲得済み ✓':'特定の条件を満たすと出現'}</div></div>`;
+    html+=`<div class="secret-char-card ${ul?'unlocked':'locked-secret'}" ${ul?`onclick="showCharModal('${c.id}','secret')"`:''}><div class="secret-emoji">${ul?`<img src="./images/chars/${c.id}.svg" alt="${c.name}" style="width:70px;height:90px;object-fit:cover;border-radius:6px;">`:'❓'}</div><div class="secret-name">${ul?c.name:'???'}</div><div class="secret-hint">${ul?'獲得済み ✓':'特定の条件を満たすと出現'}</div></div>`;
   });
   html+='</div></div>';
   document.getElementById('zukanBody').innerHTML=html;
 }
 function showCharModal(id,type){
   const char=type==='secret'?SECRET_CHARS.find(c=>c.id===id):ALL_CHARS.find(c=>c.id===id);
-  if(!char)return;
-  document.getElementById('modalEmoji').textContent=char.emoji;
+  if(!char) return;
+  document.getElementById('modalEmoji').innerHTML=`<img src="./images/chars/${id}.svg" alt="${char.name}" style="width:90px;height:116px;object-fit:cover;border-radius:8px;">`;
   const rb=document.getElementById('modalRarity'); rb.textContent=char.rarity; rb.className=`modal-rarity ${char.rarity}`;
   document.getElementById('modalName').textContent=char.name;
   document.getElementById('modalDesc').textContent=char.desc;
   document.getElementById('modalSkill').textContent=char.skill;
   document.getElementById('charModal').classList.add('active');
 }
-function closeCharModal(){document.getElementById('charModal').classList.remove('active');}
+function closeCharModal(){ document.getElementById('charModal').classList.remove('active'); }
 
-// PASSWORD / ADMIN
+// ─── PASSWORD / ADMIN ─────────────────────────────
 function togglePwVisibility(){
-  const inp=document.getElementById('pwInput'),btn=document.getElementById('pwToggle');
+  const inp=document.getElementById('pwInput'), btn=document.getElementById('pwToggle');
   inp.type=inp.type==='password'?'text':'password'; btn.textContent=inp.type==='password'?'👁':'🙈';
 }
 function checkPassword(){
   const val=document.getElementById('pwInput').value, inp=document.getElementById('pwInput');
-  if(val===ADMIN_PASSWORD){showAdmin();}
-  else{inp.classList.remove('error');void inp.offsetWidth;inp.classList.add('error');document.getElementById('pwError').textContent='パスワードが違います';inp.value='';setTimeout(()=>inp.classList.remove('error'),500);}
+  if(val===ADMIN_PASSWORD){ showAdmin(); }
+  else{ inp.classList.remove('error'); void inp.offsetWidth; inp.classList.add('error'); document.getElementById('pwError').textContent='パスワードが違います'; inp.value=''; setTimeout(()=>inp.classList.remove('error'),500); }
 }
 function renderAdmin(){
-  const p=loadProgress(),u=loadUnlocked();
+  const p=lp(), u=lu();
   const cleared=ERAS.filter(e=>p[e.id]?.cleared).length;
-  const cache=getNotionCache(),cc=cache?Object.values(cache).reduce((a,e)=>a+e.length,0):0;
+  const qTotal=Object.values(allQuestions).reduce((a,e)=>Array.isArray(e)?a+e.length:a, 0);
   document.getElementById('adminStats').innerHTML=`
     <div class="admin-stat-card"><div class="admin-stat-num">${cleared}</div><div class="admin-stat-label">時代クリア</div></div>
     <div class="admin-stat-card"><div class="admin-stat-num">${u.size}</div><div class="admin-stat-label">キャラ獲得</div></div>
-    <div class="admin-stat-card"><div class="admin-stat-num">${cc}</div><div class="admin-stat-label">キャッシュ問題</div></div>
-    <div class="admin-stat-card"><div class="admin-stat-num">${getNotionKey()?'✓':'×'}</div><div class="admin-stat-label">NotionAPI</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-num">${qTotal}</div><div class="admin-stat-label">読込問題数</div></div>
   `;
-  const key=getNotionKey(); if(key)document.getElementById('notionApiInput').value=key;
+  const syncEl=document.getElementById('adminLastSync');
+  if(syncEl) syncEl.textContent=lastSyncTime ? new Date(lastSyncTime).toLocaleString('ja-JP') : '—';
 }
-function saveNotionKey(){
-  const key=document.getElementById('notionApiInput').value.trim();
-  if(!key.startsWith('secret_')){adminLog('❌ APIキーは secret_ で始まる必要があります');return;}
-  localStorage.setItem(LS.NOTION_KEY,key); adminLog('✅ APIキーを保存しました');
-}
-async function syncFromNotion(){
-  const key=getNotionKey(); if(!key){adminLog('❌ APIキーが設定されていません');return;}
-  adminLog('🔄 Notionから同期中...'); showLoading('Notion同期中...');
-  try{
-    const data=await fetchAllNotionQuestions(key); setNotionCache(data); notionQuestions=data;
-    const total=Object.values(data).reduce((a,e)=>a+e.length,0);
-    adminLog(`✅ 同期完了！ ${total}問を取得`); renderAdmin();
-  }catch(e){adminLog(`❌ エラー: ${e.message}`);}
-  finally{hideLoading();}
-}
-async function fetchAllNotionQuestions(apiKey){
-  const result={}; let hasMore=true,cursor;
-  while(hasMore){
-    const body={filter:{property:'ステータス',select:{equals:'完成'}},page_size:100};
-    if(cursor)body.start_cursor=cursor;
-    const res=await fetch(`https://api.notion.com/v1/databases/${NOTION_DB_ID}/query`,{method:'POST',headers:{'Authorization':`Bearer ${apiKey}`,'Notion-Version':'2022-06-28','Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(!res.ok)throw new Error(`HTTP ${res.status}`);
+
+// questions.json を手動で再読込（キャッシュバスター付き）
+async function manualReload(){
+  adminLog('🔄 questions.json を再取得中...');
+  showLoading('問題データ再取得中...');
+  try {
+    const res=await fetch('./questions.json?t='+Date.now());
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const json=await res.json();
-    json.results.forEach(page=>{
-      const pr=page.properties,era=pr['時代']?.select?.name; if(!era)return;
-      const q=pr['問題文']?.title?.[0]?.plain_text||'';
-      const ca=pr['選択肢A']?.rich_text?.[0]?.plain_text||'',cb=pr['選択肢B']?.rich_text?.[0]?.plain_text||'',cc2=pr['選択肢C']?.rich_text?.[0]?.plain_text||'',cd=pr['選択肢D']?.rich_text?.[0]?.plain_text||'';
-      const ans=pr['正解']?.select?.name||'A',hint=pr['ヒント文']?.rich_text?.[0]?.plain_text||'',diff=pr['難易度']?.select?.name||'';
-      if(!result[era])result[era]=[];
-      result[era].push({question:q,choices:[ca,cb,cc2,cd],answer:{A:0,B:1,C:2,D:3}[ans]??0,hint,difficulty:diff});
-    });
-    hasMore=json.has_more; cursor=json.next_cursor;
-  }
-  return result;
+    allQuestions=json.questions||{};
+    lastSyncTime=json.generatedAt||null;
+    const total=Object.values(allQuestions).reduce((a,e)=>Array.isArray(e)?a+e.length:a,0);
+    adminLog(`✅ 再取得完了: ${total}問 (生成日時: ${json.generatedAt||'不明'})`);
+    renderAdmin();
+    showToast(`📚 ${total}問を再読込しました`);
+  } catch(e) {
+    adminLog(`❌ 失敗: ${e.message}\n→ GitHub Actionsが正常か確認してください`);
+    showToast('再取得に失敗しました', true);
+  } finally { hideLoading(); }
 }
-function adminLog(msg){const el=document.getElementById('adminLog');el.textContent+=msg+'\n';el.scrollTop=el.scrollHeight;}
+
+function adminLog(msg){ const el=document.getElementById('adminLog'); el.textContent+=msg+'\n'; el.scrollTop=el.scrollHeight; }
 function confirmReset(type){
   const labels={progress:'進行状況',chars:'キャラデータ',all:'全データ'};
-  if(!confirm(`${labels[type]}をリセットしますか？取り消せません。`))return;
-  if(type==='progress'||type==='all')localStorage.removeItem(LS.PROGRESS);
-  if(type==='chars'||type==='all')localStorage.removeItem(LS.UNLOCKED);
-  if(type==='all'){localStorage.removeItem(LS.NOTION_KEY);localStorage.removeItem(LS.NOTION_CACHE);notionQuestions={};}
+  if(!confirm(`${labels[type]}をリセットしますか？取り消せません。`)) return;
+  if(type==='progress'||type==='all') localStorage.removeItem(LS.PROGRESS);
+  if(type==='chars'    ||type==='all') localStorage.removeItem(LS.UNLOCKED);
   adminLog(`✅ ${labels[type]}をリセットしました`); renderAdmin(); showToast(`${labels[type]}をリセットしました`);
 }
 
-// COMBO / PARTICLES
+// ─── COMBO / PARTICLES ───────────────────────────
 function showCombo(n){
   const el=document.getElementById('comboFlash');
   el.textContent={2:'COMBO!',3:'GREAT!!',4:'AMAZING!!!',5:'PERFECT!!!!'}[n]||`${n}連続！`;
@@ -1021,31 +986,43 @@ function showCombo(n){
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
 }
 function spawnParticles(el){
-  const rect=el.getBoundingClientRect(),cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+  const rect=el.getBoundingClientRect(), cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
   for(let i=0;i<12;i++){
     const p=document.createElement('div'); p.className='particle';
-    const angle=(i/12)*360,dist=60+Math.random()*60;
+    const angle=(i/12)*360, dist=60+Math.random()*60;
     p.style.cssText=`left:${cx}px;top:${cy}px;background:${['#ffcc00','#ff4422','#00c864'][i%3]};--tx:${Math.cos(angle*Math.PI/180)*dist}px;--ty:${Math.sin(angle*Math.PI/180)*dist}px;`;
     document.body.appendChild(p); setTimeout(()=>p.remove(),1000);
   }
 }
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 let toastTimer=null;
 function showToast(msg,err=false){
   const el=document.getElementById('toast'); el.textContent=msg; el.classList.toggle('error-toast',err); el.classList.add('show');
-  if(toastTimer)clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
+  if(toastTimer) clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
 }
-function showLoading(t='読み込み中…'){document.getElementById('loadingText').textContent=t;document.getElementById('loadingOverlay').classList.add('visible');}
-function hideLoading(){document.getElementById('loadingOverlay').classList.remove('visible');}
+function showLoading(t='読み込み中…'){ document.getElementById('loadingText').textContent=t; document.getElementById('loadingOverlay').classList.add('visible'); }
+function hideLoading(){ document.getElementById('loadingOverlay').classList.remove('visible'); }
 
-// BOOT
-(async function(){
-  const cache=getNotionCache();
-  if(cache){notionQuestions=cache;const t=Object.values(cache).reduce((a,e)=>a+e.length,0);if(t>0)showToast(`📚 ${t}問を読み込みました`);}
+// ─── BOOT ────────────────────────────────────────
+(async function boot(){
+  showLoading('問題データを読み込み中…');
+  try {
+    const res=await fetch('./questions.json');
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json=await res.json();
+    allQuestions=json.questions||{};
+    lastSyncTime=json.generatedAt||null;
+    const total=Object.values(allQuestions).reduce((a,e)=>Array.isArray(e)?a+e.length:a,0);
+    if(total>0) showToast(`📚 ${total}問を読み込みました`);
+  } catch(e) {
+    console.warn('questions.json 読み込み失敗:', e.message);
+    showToast('⚠ 問題データが読み込めませんでした', true);
+  } finally { hideLoading(); }
+
   renderEraList();
-  const key=getNotionKey();
-  if(key)(async()=>{try{const d=await fetchAllNotionQuestions(key);setNotionCache(d);notionQuestions=d;const t=Object.values(d).reduce((a,e)=>a+e.length,0);if(t>0)showToast(`✅ Notion同期完了 (${t}問)`);}catch(e){console.warn('sync fail:',e.message);}})();
-  if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+  if('serviceWorker' in navigator)
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
 </script>
 </body>

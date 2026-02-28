@@ -1,0 +1,50 @@
+name: Sync Notion → questions.json
+
+on:
+  # 毎日 JST 04:00（UTC 19:00）に自動実行
+  schedule:
+    - cron: '0 19 * * *'
+  # 手動実行ボタンも有効化
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check & fetch from Notion
+        id: fetch
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+        run: |
+          # スクリプトの出力を captured に保存しつつ画面にも表示
+          output=$(node scripts/fetch-notion.js 2>&1 | tee /dev/stderr)
+          # NO_CHANGE が含まれていたらスキップフラグを立てる
+          if echo "$output" | grep -q "NO_CHANGE"; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit & push
+        if: steps.fetch.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add questions.json
+          git diff --cached --quiet && echo "差分なし" || \
+            git commit -m "chore: sync questions from Notion [$(date -u '+%Y-%m-%d %H:%M UTC')]" && git push
+
+      - name: Skip notice
+        if: steps.fetch.outputs.changed == 'false'
+        run: echo "📭 Notionに変更がないため、questions.json の更新をスキップしました"

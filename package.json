@@ -1,0 +1,7 @@
+{
+  "name": "nihonshi-quiz",
+  "type": "module",
+  "scripts": {
+    "fetch": "node scripts/fetch-notion.js"
+  }
+}
