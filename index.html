@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>歴史バトル！ニッポン史クイズ</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ニッポン史">
+<meta name="theme-color" content="#0a0a12">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Antique+Soft&family=Noto+Sans+JP:wght@400;700;900&display=swap');
+
+  :root {
+    --ink: #0a0a12;
+    --paper: #f5f0e8;
+    --red: #cc2200;
+    --gold: #d4a017;
+    --blue: #1a3a6b;
+    --accent: #ff4422;
+    --glow: #ffcc00;
+    --green: #00c864;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--ink); min-height: 100vh;
+    overflow-x: hidden; display: flex; align-items: center; justify-content: center;
+  }
+  .screen { display: none; width: 100%; max-width: 420px; min-height: 100vh; position: relative; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ═══ TITLE ═══ */
+  #screen-title {
+    background: linear-gradient(160deg,#0a0a12 0%,#1a0a05 60%,#0a0010 100%);
+    align-items: center; justify-content: center; padding: 40px 24px; overflow: hidden;
+  }
+  .title-bg-lines {
+    position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg,transparent,transparent 48px,rgba(212,160,23,.06) 48px,rgba(212,160,23,.06) 49px),
+      repeating-linear-gradient(90deg,transparent,transparent 48px,rgba(212,160,23,.04) 48px,rgba(212,160,23,.04) 49px);
+  }
+  .title-seal {
+    width: 90px; height: 90px; border: 3px solid var(--gold); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 24px; position: relative;
+    animation: rotateSeal 20s linear infinite;
+    box-shadow: 0 0 30px rgba(212,160,23,.4),inset 0 0 20px rgba(212,160,23,.1);
+  }
+  .title-seal::before { content:''; position:absolute; inset:5px; border:1px solid rgba(212,160,23,.4); border-radius:50%; }
+  .title-seal-kanji { font-family:'Zen Antique Soft',serif; font-size:36px; color:var(--gold); text-shadow:0 0 20px rgba(212,160,23,.8); }
+  @keyframes rotateSeal { to { transform: rotate(360deg); } }
+  .title-eyebrow { font-size:11px; letter-spacing:.4em; color:var(--gold); text-transform:uppercase; margin-bottom:12px; opacity:.8; }
+  .title-main {
+    font-family:'Zen Antique Soft',serif; font-size:42px; line-height:1.1; color:var(--paper); text-align:center;
+    text-shadow:4px 4px 0 var(--red),0 0 40px rgba(204,34,0,.4); margin-bottom:8px;
+    animation: titlePulse 3s ease-in-out infinite;
+  }
+  @keyframes titlePulse {
+    0%,100% { text-shadow:4px 4px 0 var(--red),0 0 40px rgba(204,34,0,.3); }
+    50% { text-shadow:4px 4px 0 var(--red),0 0 60px rgba(204,34,0,.6),0 0 100px rgba(255,68,34,.2); }
+  }
+  .title-sub { font-size:13px; color:rgba(245,240,232,.6); letter-spacing:.15em; margin-bottom:32px; text-align:center; }
+  .title-chars { display:flex; justify-content:center; gap:0; margin-bottom:32px; position:relative; }
+  .char-card { width:90px; height:130px; position:relative; cursor:default; }
+  .char-card:nth-child(1) { transform:rotate(-8deg) translateX(10px); z-index:1; }
+  .char-card:nth-child(2) { transform:translateY(-10px); z-index:3; }
+  .char-card:nth-child(3) { transform:rotate(8deg) translateX(-10px); z-index:1; }
+  .char-avatar {
+    width:100%; height:100%; border-radius:8px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:'Zen Antique Soft',serif; border:2px solid; position:relative; overflow:hidden;
+  }
+  .char-card:nth-child(1) .char-avatar { background:linear-gradient(160deg,#1a0050,#0a002a); border-color:#7b2fff; }
+  .char-card:nth-child(2) .char-avatar { background:linear-gradient(160deg,#4a0000,#200000); border-color:var(--red); box-shadow:0 0 20px rgba(204,34,0,.5); }
+  .char-card:nth-child(3) .char-avatar { background:linear-gradient(160deg,#002a4a,#00101a); border-color:#00aaff; }
+  .char-emoji { font-size:44px; line-height:1; margin-bottom:4px; }
+  .char-name-tag { font-size:9px; color:rgba(255,255,255,.7); letter-spacing:.05em; text-align:center; padding:0 4px; }
+  .char-era-badge { position:absolute; bottom:6px; left:0; right:0; text-align:center; font-size:8px; color:rgba(255,255,255,.5); }
+  .speed-lines {
+    position:absolute; inset:-20px; pointer-events:none;
+    background:repeating-conic-gradient(rgba(255,255,255,.02) 0deg 5deg,transparent 5deg 10deg);
+    border-radius:50%; animation:spinLines 8s linear infinite;
+  }
+  @keyframes spinLines { to { transform:rotate(360deg); } }
+  .title-btns { display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; }
+  .start-btn {
+    background:var(--red); color:white; border:none; border-radius:4px; padding:18px 48px;
+    font-family:'Noto Sans JP',sans-serif; font-size:18px; font-weight:900; letter-spacing:.1em;
+    cursor:pointer; position:relative; overflow:hidden;
+    box-shadow:0 6px 0 #7a1100,0 8px 20px rgba(204,34,0,.4);
+    transition:transform .1s,box-shadow .1s;
+    clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+    width:100%; max-width:280px;
+  }
+  .start-btn:active { transform:translateY(4px); box-shadow:0 2px 0 #7a1100; }
+  .start-btn::after {
+    content:''; position:absolute; top:0; left:-100%; width:60%; height:100%;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);
+    animation:btnShine 2.5s ease-in-out infinite;
+  }
+  @keyframes btnShine { to { left:200%; } }
+  .sub-btn {
+    background: var(--blue); color: white; border: none; border-radius: 4px;
+    padding: 18px 48px; font-family: 'Noto Sans JP', sans-serif; font-size: 16px; font-weight: 900;
+    letter-spacing: .1em; cursor: pointer; position: relative; overflow: hidden;
+    box-shadow: 0 6px 0 #0d1f3a, 0 8px 20px rgba(26,58,107,.5);
+    transition: transform .1s, box-shadow .1s;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+    width: 100%; max-width: 280px;
+  }
+  .sub-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #0d1f3a; }
+  .sub-btn::after {
+    content: ''; position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent);
+    animation: btnShine 3s ease-in-out infinite;
+  }
+  .version-tag { position:absolute; bottom:56px; font-size:10px; color:rgba(245,240,232,.3); letter-spacing:.2em; }
+  .admin-entry-btn {
+    position:absolute; bottom:20px; right:20px; background:none;
+    border:1px solid rgba(245,240,232,.12); color:rgba(245,240,232,.25); border-radius:4px;
+    padding:5px 9px; font-size:10px; letter-spacing:.1em; font-family:"Noto Sans JP",sans-serif;
+    cursor:pointer; transition:all .2s;
+  }
+  .admin-entry-btn:hover { border-color:rgba(245,240,232,.4); color:rgba(245,240,232,.6); }
+
+  /* ═══ SHARED HEADER ═══ */
+  .era-header {
+    background:linear-gradient(180deg,#0a0a12,transparent);
+    padding:24px 20px 16px; position:sticky; top:0; z-index:10; backdrop-filter:blur(10px);
+  }
+  .era-header-top { display:flex; align-items:center; gap:12px; margin-bottom:4px; }
+  .back-btn {
+    background:none; border:1px solid rgba(245,240,232,.2); color:rgba(245,240,232,.7);
+    border-radius:4px; padding:6px 10px; cursor:pointer; font-size:12px; font-family:'Noto Sans JP',sans-serif;
+  }
+  .era-header h2 { font-family:'Zen Antique Soft',serif; font-size:20px; color:var(--paper); }
+  .era-header p { font-size:11px; color:rgba(245,240,232,.4); letter-spacing:.1em; }
+
+  /* ═══ ERA SELECT ═══ */
+  #screen-era { background:#0d0d18; padding:0; overflow-y:auto; }
+  .era-timeline { padding:16px 20px 40px; position:relative; }
+  .era-timeline::before {
+    content:''; position:absolute; left:36px; top:20px; bottom:40px;
+    width:2px; background:linear-gradient(180deg,var(--gold),rgba(212,160,23,.1));
+  }
+  .era-item { display:flex; align-items:center; gap:16px; margin-bottom:12px; cursor:pointer; animation:fadeSlideIn .3s ease both; }
+  .era-item:nth-child(1){animation-delay:.05s}.era-item:nth-child(2){animation-delay:.1s}
+  .era-item:nth-child(3){animation-delay:.15s}.era-item:nth-child(4){animation-delay:.2s}
+  .era-item:nth-child(5){animation-delay:.25s}.era-item:nth-child(6){animation-delay:.3s}
+  .era-item:nth-child(7){animation-delay:.35s}.era-item:nth-child(8){animation-delay:.4s}
+  @keyframes fadeSlideIn { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+  .era-dot {
+    width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:16px; flex-shrink:0; position:relative; z-index:1; border:2px solid; transition:transform .2s;
+  }
+  .era-item:hover .era-dot { transform:scale(1.2); }
+  .era-item:hover .era-card-inner { transform:translateX(4px); }
+  .era-card-inner {
+    flex:1; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:8px;
+    padding:12px 16px; transition:background .2s,transform .2s,border-color .2s; position:relative; overflow:hidden;
+  }
+  .era-item:hover .era-card-inner { background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.2); }
+  .era-item.cleared .era-card-inner { border-color:rgba(0,200,100,.3); }
+  .era-card-name { font-family:'Zen Antique Soft',serif; font-size:16px; color:var(--paper); margin-bottom:2px; }
+  .era-card-period { font-size:10px; color:rgba(245,240,232,.4); letter-spacing:.1em; }
+  .era-card-meta { position:absolute; right:12px; top:50%; transform:translateY(-50%); text-align:right; }
+  .era-card-count { font-size:10px; color:rgba(245,240,232,.3); }
+  .era-card-bar { position:absolute; bottom:0; left:0; height:2px; border-radius:0 0 8px 8px; transition:width .4s; }
+
+  /* ═══ DIFFICULTY ═══ */
+  #screen-difficulty { background:#0d0d18; padding:0; overflow-y:auto; }
+  .diff-grid { padding:20px; display:flex; flex-direction:column; gap:12px; }
+  .diff-card {
+    background:rgba(255,255,255,.04); border:1.5px solid rgba(255,255,255,.1); border-radius:10px;
+    padding:20px; cursor:pointer; transition:background .2s,border-color .2s,transform .1s;
+    display:flex; align-items:center; gap:16px;
+  }
+  .diff-card:active { transform:scale(.98); }
+  .diff-card.easy { border-color:rgba(0,200,100,.3); }
+  .diff-card.easy:hover { background:rgba(0,200,100,.08); border-color:rgba(0,200,100,.6); }
+  .diff-card.normal { border-color:rgba(212,160,23,.3); }
+  .diff-card.normal:hover { background:rgba(212,160,23,.08); border-color:rgba(212,160,23,.6); }
+  .diff-card.hard { border-color:rgba(204,34,0,.3); }
+  .diff-card.hard:hover { background:rgba(204,34,0,.08); border-color:rgba(204,34,0,.6); }
+  .diff-card.all { border-color:rgba(0,170,255,.3); }
+  .diff-card.all:hover { background:rgba(0,170,255,.08); border-color:rgba(0,170,255,.6); }
+  .diff-icon { font-size:36px; flex-shrink:0; }
+  .diff-label { font-family:'Zen Antique Soft',serif; font-size:18px; color:var(--paper); margin-bottom:4px; }
+  .diff-desc { font-size:11px; color:rgba(245,240,232,.4); line-height:1.6; }
+
+  /* ═══ QUIZ ═══ */
+  #screen-quiz { background:#0d0d18; padding:0; }
+  .quiz-topbar {
+    padding:16px 20px 12px; display:flex; align-items:center; gap:12px;
+    background:rgba(10,10,18,.8); backdrop-filter:blur(10px); border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  .quiz-era-label { font-size:11px; color:var(--gold); letter-spacing:.1em; font-weight:700; flex:1; }
+  .quiz-score-display { font-family:'Zen Antique Soft',serif; font-size:18px; color:var(--paper); }
+  .quiz-score-display span { color:var(--gold); font-size:22px; }
+  .timer-bar-wrap { padding:0 20px; }
+  .timer-bar-bg { height:6px; background:rgba(255,255,255,.08); border-radius:3px; overflow:hidden; margin-top:8px; }
+  .timer-bar-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,var(--gold),var(--accent)); transition:width 1s linear,background .3s; }
+  .timer-text { font-size:11px; color:rgba(245,240,232,.4); text-align:right; margin-top:2px; }
+  .quiz-char-area { padding:16px 20px 0; display:flex; align-items:flex-end; gap:16px; min-height:160px; }
+  .quiz-char-figure { width:100px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; }
+  .quiz-char-emoji { font-size:72px; line-height:1; filter:drop-shadow(0 0 20px rgba(255,200,0,.3)); animation:charFloat 3s ease-in-out infinite; }
+  @keyframes charFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+  .quiz-char-name { font-size:10px; color:rgba(245,240,232,.5); margin-top:4px; letter-spacing:.05em; }
+  .speech-bubble {
+    flex:1; background:rgba(245,240,232,.06); border:1px solid rgba(245,240,232,.12);
+    border-radius:12px 12px 12px 4px; padding:14px 16px; position:relative;
+  }
+  .speech-bubble::before {
+    content:''; position:absolute; left:-8px; bottom:20px;
+    border:8px solid transparent; border-right-color:rgba(245,240,232,.12);
+  }
+  .q-number { font-size:10px; color:var(--gold); letter-spacing:.1em; font-weight:700; margin-bottom:8px; }
+  .q-text { font-size:15px; line-height:1.7; color:var(--paper); font-weight:700; }
+  .choices-area { padding:20px 20px 10px; display:flex; flex-direction:column; gap:10px; }
+  .choice-btn {
+    background:rgba(255,255,255,.05); border:1.5px solid rgba(255,255,255,.12); border-radius:8px;
+    padding:14px 18px; color:var(--paper); font-family:'Noto Sans JP',sans-serif;
+    font-size:14px; font-weight:700; text-align:left; cursor:pointer;
+    display:flex; align-items:center; gap:12px;
+    transition:background .15s,border-color .15s,transform .1s; position:relative; overflow:hidden;
+  }
+  .choice-btn:not(.disabled):hover { background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.25); transform:translateX(4px); }
+  .choice-btn:not(.disabled):active { transform:scale(.98); }
+  .choice-label {
+    width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,.1);
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:900; flex-shrink:0; border:1px solid rgba(255,255,255,.2);
+  }
+  .choice-btn.correct { background:rgba(0,200,100,.15); border-color:var(--green); animation:correctPulse .4s ease; }
+  .choice-btn.correct .choice-label { background:var(--green); border-color:var(--green); }
+  @keyframes correctPulse { 0%{transform:scale(1)} 40%{transform:scale(1.03)} 100%{transform:scale(1)} }
+  .choice-btn.wrong { background:rgba(204,34,0,.15); border-color:var(--red); animation:wrongShake .4s ease; }
+  .choice-btn.wrong .choice-label { background:var(--red); border-color:var(--red); }
+  @keyframes wrongShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+  .choice-btn.disabled { cursor:default; }
+  .hint-bubble { background:rgba(212,160,23,.1); border:1px solid rgba(212,160,23,.3); border-radius:8px; padding:10px 14px; margin:0 20px; display:none; }
+  .hint-bubble.visible { display:block; }
+  .hint-label { font-size:9px; color:var(--gold); letter-spacing:.2em; font-weight:700; margin-bottom:4px; }
+  .hint-text { font-size:13px; color:rgba(245,240,232,.7); line-height:1.6; }
+  .next-q-btn {
+    display:none; margin:12px 20px 20px; padding:14px;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15);
+    color:var(--paper); font-family:'Noto Sans JP',sans-serif; font-size:15px; font-weight:700;
+    border-radius:8px; cursor:pointer; text-align:center; letter-spacing:.05em; transition:background .2s;
+  }
+  .next-q-btn:hover { background:rgba(255,255,255,.15); }
+  .combo-flash {
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    font-family:'Zen Antique Soft',serif; font-size:64px; font-weight:900;
+    pointer-events:none; z-index:100; opacity:0; text-shadow:0 0 30px currentColor;
+  }
+  .combo-flash.show { animation:comboAnim .8s ease forwards; }
+  @keyframes comboAnim {
+    0%{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(-10deg)}
+    30%{opacity:1;transform:translate(-50%,-50%) scale(1.2) rotate(3deg)}
+    60%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0)}
+    100%{opacity:0;transform:translate(-50%,-50%) scale(1.1) rotate(0) translateY(-30px)}
+  }
+
+  /* ═══ RESULT ═══ */
+  #screen-result {
+    background:linear-gradient(160deg,#0a0a12 0%,#1a0a05 60%,#0a0010 100%);
+    align-items:center; justify-content:flex-start; padding:40px 24px; text-align:center;
+    position:relative; overflow:hidden; overflow-y:auto;
+  }
+  .result-burst {
+    position:absolute; inset:0; pointer-events:none;
+    background:repeating-conic-gradient(rgba(212,160,23,.03) 0deg 10deg,transparent 10deg 20deg);
+    animation:spinLines 15s linear infinite;
+  }
+  .result-rank {
+    font-family:'Zen Antique Soft',serif; font-size:80px; line-height:1; margin-bottom:8px; position:relative;
+    animation:rankAppear .6s cubic-bezier(.175,.885,.32,1.275) both;
+  }
+  @keyframes rankAppear { from{opacity:0;transform:scale(0)} to{opacity:1;transform:scale(1)} }
+  .result-title-label { font-size:12px; color:var(--gold); letter-spacing:.3em; margin-bottom:4px; }
+  .result-title-text { font-family:'Zen Antique Soft',serif; font-size:28px; color:var(--paper); margin-bottom:24px; position:relative; }
+  .result-score-box {
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+    border-radius:12px; padding:20px 40px; margin-bottom:20px; position:relative; width:100%;
+  }
+  .result-score-num { font-family:'Zen Antique Soft',serif; font-size:56px; color:var(--gold); text-shadow:0 0 30px rgba(212,160,23,.6); line-height:1; }
+  .result-score-label { font-size:12px; color:rgba(245,240,232,.5); margin-top:4px; }
+  .result-correct-count { font-size:14px; color:rgba(245,240,232,.6); margin-top:8px; }
+  .result-gacha {
+    background:rgba(212,160,23,.1); border:1px solid rgba(212,160,23,.4);
+    border-radius:12px; padding:16px 20px; margin-bottom:20px; width:100%;
+    display:none; text-align:left;
+  }
+  .result-gacha.visible { display:flex; gap:14px; align-items:center; }
+  .gacha-emoji { font-size:56px; flex-shrink:0; animation:charReveal .5s cubic-bezier(.175,.885,.32,1.275); }
+  @keyframes charReveal { from{transform:scale(0) rotate(-180deg);opacity:0} to{transform:scale(1) rotate(0);opacity:1} }
+  .gacha-info { flex:1; }
+  .gacha-header { display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:wrap; }
+  .gacha-rarity-badge { font-size:9px; font-weight:900; padding:2px 7px; border-radius:10px; }
+  .gacha-rarity-badge.SR { background:linear-gradient(135deg,#ffd700,#ff8c00); color:white; }
+  .gacha-rarity-badge.R { background:linear-gradient(135deg,#a0c4ff,#4080ff); color:white; }
+  .gacha-rarity-badge.N { background:rgba(255,255,255,.15); color:rgba(245,240,232,.6); }
+  .gacha-rarity-badge.SECRET { background:linear-gradient(135deg,#ffd700,#ff69b4,#ffd700); color:white; font-size:10px; }
+  .gacha-new-badge { font-size:9px; background:var(--red); color:white; padding:2px 6px; border-radius:8px; }
+  .gacha-unlock-label { font-size:10px; color:var(--gold); letter-spacing:.15em; margin-bottom:2px; }
+  .gacha-name { font-family:'Zen Antique Soft',serif; font-size:18px; color:var(--paper); margin-bottom:4px; }
+  .gacha-desc { font-size:11px; color:rgba(245,240,232,.5); line-height:1.5; }
+  .gacha-skill { font-size:10px; color:var(--gold); margin-top:4px; font-style:italic; }
+  .result-btns { display:flex; flex-direction:column; gap:12px; width:100%; position:relative; }
+  .result-btn-primary {
+    background:var(--red); color:white; border:none; border-radius:4px; padding:16px;
+    font-family:'Noto Sans JP',sans-serif; font-size:16px; font-weight:900; cursor:pointer;
+    box-shadow:0 4px 0 #7a1100; transition:transform .1s,box-shadow .1s;
+    clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+  }
+  .result-btn-primary:active { transform:translateY(3px); box-shadow:0 1px 0 #7a1100; }
+  .result-btn-secondary {
+    background:transparent; color:rgba(245,240,232,.6); border:1px solid rgba(245,240,232,.15);
+    border-radius:4px; padding:14px; font-family:'Noto Sans JP',sans-serif; font-size:14px; font-weight:700;
+    cursor:pointer; transition:border-color .2s,color .2s;
+  }
+  .result-btn-secondary:hover { border-color:rgba(245,240,232,.4); color:var(--paper); }
+
+  /* ═══ ZUKAN ═══ */
+  #screen-zukan { background:#0d0d18; padding:0; overflow-y:auto; }
+  .zukan-body { padding:16px 20px 40px; }
+  .zukan-secret-section {
+    background:linear-gradient(135deg,rgba(212,160,23,.06),rgba(255,105,180,.04));
+    border:1px solid rgba(212,160,23,.3); border-radius:12px; padding:16px; margin-bottom:24px;
+  }
+  .zukan-secret-title { font-family:'Zen Antique Soft',serif; font-size:15px; color:var(--gold); text-align:center; margin-bottom:14px; letter-spacing:.2em; }
+  .zukan-secret-lock { text-align:center; padding:16px 0; }
+  .zukan-secret-lock-icon { font-size:28px; margin-bottom:6px; }
+  .zukan-secret-lock-text { font-size:12px; color:rgba(245,240,232,.3); }
+  .zukan-secret-chars { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .secret-char-card {
+    background:rgba(255,255,255,.04); border:1px solid rgba(212,160,23,.3);
+    border-radius:8px; padding:14px 8px; text-align:center; cursor:pointer; transition:all .2s;
+  }
+  .secret-char-card.unlocked { border-color:var(--gold); background:rgba(212,160,23,.08); }
+  .secret-char-card.locked-secret { opacity:.45; cursor:default; filter:grayscale(.5); }
+  .secret-emoji { font-size:38px; margin-bottom:6px; }
+  .secret-name { font-size:10px; color:var(--paper); font-weight:700; }
+  .secret-hint { font-size:9px; color:rgba(245,240,232,.35); margin-top:3px; line-height:1.4; }
+  .zukan-era-section { margin-bottom:24px; }
+  .zukan-era-header { display:flex; align-items:center; gap:10px; border-bottom:1px solid rgba(212,160,23,.15); padding-bottom:8px; margin-bottom:12px; }
+  .zukan-era-emoji { font-size:18px; }
+  .zukan-era-name { font-family:'Zen Antique Soft',serif; font-size:14px; color:var(--paper); flex:1; }
+  .zukan-era-count { font-size:10px; color:rgba(245,240,232,.35); }
+  .zukan-chars-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+  .zukan-char-card {
+    aspect-ratio:1; border-radius:8px; border:1.5px solid rgba(255,255,255,.08);
+    background:rgba(255,255,255,.03); display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:4px; cursor:pointer; transition:all .2s; position:relative; font-size:26px;
+  }
+  .zukan-char-card.unlocked { border-color:rgba(255,255,255,.2); background:rgba(255,255,255,.06); }
+  .zukan-char-card.unlocked.SR { border-color:var(--gold); background:rgba(212,160,23,.1); }
+  .zukan-char-card.unlocked.R { border-color:#4080ff; background:rgba(64,128,255,.08); }
+  .zukan-char-card.locked { filter:grayscale(1); opacity:.3; cursor:default; }
+  .zukan-char-rarity { position:absolute; top:2px; right:3px; font-size:6px; font-weight:900; }
+  .zukan-char-rarity.SR { color:var(--gold); }
+  .zukan-char-rarity.R { color:#4080ff; }
+  .zukan-char-label { font-size:7px; color:rgba(245,240,232,.4); text-align:center; margin-top:2px; line-height:1.2; }
+
+  /* ═══ CHAR MODAL ═══ */
+  .char-modal {
+    position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.8);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .25s;
+  }
+  .char-modal.active { opacity:1; pointer-events:all; }
+  .char-modal-inner {
+    background:linear-gradient(160deg,#12121e,#1a1410); border-radius:16px 16px 0 0;
+    padding:24px 20px 40px; width:100%; max-width:420px; text-align:center;
+    border-top:1px solid rgba(212,160,23,.3);
+    transform:translateY(100%); transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  }
+  .char-modal.active .char-modal-inner { transform:translateY(0); }
+  .modal-emoji { font-size:80px; margin-bottom:12px; }
+  .modal-rarity { display:inline-block; padding:3px 14px; border-radius:12px; font-size:11px; font-weight:900; margin-bottom:10px; }
+  .modal-rarity.SR { background:linear-gradient(135deg,#ffd700,#ff8c00); color:white; }
+  .modal-rarity.R { background:linear-gradient(135deg,#a0c4ff,#4080ff); color:white; }
+  .modal-rarity.N { background:rgba(255,255,255,.1); color:rgba(245,240,232,.5); }
+  .modal-rarity.SECRET { background:linear-gradient(135deg,#ffd700,#ff69b4); color:white; }
+  .modal-name { font-family:'Zen Antique Soft',serif; font-size:22px; color:var(--paper); margin-bottom:10px; }
+  .modal-desc { font-size:13px; color:rgba(245,240,232,.6); line-height:1.7; margin-bottom:12px; }
+  .modal-skill { font-size:12px; color:var(--gold); font-style:italic; border-top:1px solid rgba(212,160,23,.2); padding-top:12px; }
+  .modal-close { margin-top:20px; padding:12px 32px; background:rgba(255,255,255,.08); color:var(--paper); border:1px solid rgba(255,255,255,.15); border-radius:6px; font-family:'Noto Sans JP',sans-serif; font-size:14px; cursor:pointer; transition:background .2s; }
+  .modal-close:hover { background:rgba(255,255,255,.15); }
+
+  /* ═══ PASSWORD ═══ */
+  #screen-password { background:linear-gradient(160deg,#0a0a12 0%,#0a0018 100%); align-items:center; justify-content:center; padding:40px 24px; text-align:center; }
+  .pw-icon { font-size:48px; margin-bottom:16px; }
+  .pw-title { font-family:"Zen Antique Soft",serif; font-size:22px; color:var(--paper); margin-bottom:6px; }
+  .pw-sub { font-size:11px; color:rgba(245,240,232,.4); letter-spacing:.1em; margin-bottom:32px; }
+  .pw-input-wrap { position:relative; width:100%; margin-bottom:10px; }
+  .pw-input {
+    width:100%; padding:16px 48px 16px 18px; background:rgba(255,255,255,.06);
+    border:1.5px solid rgba(255,255,255,.15); border-radius:8px; color:var(--paper);
+    font-family:"Noto Sans JP",sans-serif; font-size:16px; outline:none; transition:border-color .2s; letter-spacing:.15em;
+  }
+  .pw-input:focus { border-color:var(--gold); }
+  .pw-input.error { border-color:var(--red); animation:wrongShake .4s ease; }
+  .pw-toggle { position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; color:rgba(245,240,232,.4); cursor:pointer; font-size:18px; padding:4px; }
+  .pw-submit-btn { width:100%; padding:16px; background:var(--blue); color:white; border:none; border-radius:8px; font-family:"Noto Sans JP",sans-serif; font-size:16px; font-weight:900; cursor:pointer; transition:background .2s; margin-bottom:16px; }
+  .pw-submit-btn:hover { background:#1e4a8a; }
+  .pw-error-msg { font-size:12px; color:var(--red); min-height:18px; margin-bottom:8px; }
+  .pw-back-btn { background:none; border:none; color:rgba(245,240,232,.4); font-family:"Noto Sans JP",sans-serif; font-size:13px; cursor:pointer; text-decoration:underline; }
+
+  /* ═══ ADMIN ═══ */
+  #screen-admin { background:#0d0d18; overflow-y:auto; }
+  .admin-header { background:rgba(10,10,18,.95); padding:20px 20px 14px; position:sticky; top:0; z-index:10; backdrop-filter:blur(10px); border-bottom:1px solid rgba(212,160,23,.2); }
+  .admin-header-top { display:flex; align-items:center; gap:12px; margin-bottom:2px; }
+  .admin-header h2 { font-family:"Zen Antique Soft",serif; font-size:18px; color:var(--gold); flex:1; }
+  .admin-header-sub { font-size:10px; color:rgba(245,240,232,.35); letter-spacing:.1em; }
+  .admin-stats { display:flex; gap:10px; padding:14px 20px 0; flex-wrap:wrap; }
+  .admin-stat-card { flex:1; min-width:70px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:8px; padding:10px 12px; text-align:center; }
+  .admin-stat-num { font-family:"Zen Antique Soft",serif; font-size:24px; color:var(--gold); }
+  .admin-stat-label { font-size:9px; color:rgba(245,240,232,.4); margin-top:2px; }
+  .admin-section { padding:20px 20px 0; }
+  .admin-section-title { font-size:11px; color:var(--gold); letter-spacing:.2em; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .admin-section-title::after { content:""; flex:1; height:1px; background:rgba(212,160,23,.2); }
+  .form-group { display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
+  .form-label { font-size:10px; color:rgba(245,240,232,.5); letter-spacing:.1em; font-weight:700; }
+  .form-input { background:rgba(255,255,255,.06); border:1.5px solid rgba(255,255,255,.12); border-radius:6px; color:var(--paper); font-family:"Noto Sans JP",sans-serif; font-size:14px; padding:10px 12px; outline:none; transition:border-color .2s; }
+  .form-input:focus { border-color:var(--gold); }
+  .admin-log { background:rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.08); border-radius:6px; padding:12px; font-family:monospace; font-size:12px; color:var(--green); max-height:160px; overflow-y:auto; line-height:1.6; white-space:pre-wrap; }
+  .admin-btn { padding:10px 18px; border-radius:6px; border:none; font-family:'Noto Sans JP',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:all .15s; margin-right:8px; margin-bottom:8px; }
+  .admin-btn-green { background:#238636; color:white; }
+  .admin-btn-gray { background:rgba(255,255,255,.08); color:rgba(245,240,232,.7); border:1px solid rgba(255,255,255,.12); }
+  .admin-btn-red { background:var(--red); color:white; }
+
+  /* ═══ PARTICLES / TOAST / LOADING ═══ */
+  .particle { position:fixed; pointer-events:none; z-index:50; width:8px; height:8px; border-radius:50%; animation:particleFly 1s ease forwards; }
+  @keyframes particleFly { to { transform:translate(var(--tx),var(--ty)) scale(0); opacity:0; } }
+  .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--green); color:white; padding:12px 24px; border-radius:99px; font-family:"Noto Sans JP",sans-serif; font-size:14px; font-weight:700; z-index:200; transition:transform .3s ease; white-space:nowrap; box-shadow:0 4px 20px rgba(0,200,100,.4); }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+  .toast.error-toast { background:var(--red); box-shadow:0 4px 20px rgba(204,34,0,.4); }
+  .loading-overlay { position:fixed; inset:0; z-index:300; background:rgba(10,10,18,.9); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; opacity:0; pointer-events:none; transition:opacity .3s; }
+  .loading-overlay.visible { opacity:1; pointer-events:all; }
+  .loading-spinner { width:44px; height:44px; border:3px solid rgba(212,160,23,.2); border-top-color:var(--gold); border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .loading-text { font-size:13px; color:var(--gold); letter-spacing:.2em; }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loadingText">読み込み中…</div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="combo-flash" id="comboFlash"></div>
+
+<!-- ════ TITLE ════ -->
+<div id="screen-title" class="screen active">
+  <div class="title-bg-lines"></div>
+  <div class="title-seal"><span class="title-seal-kanji">史</span></div>
+  <div class="title-eyebrow">NIHON-SHI QUIZ BATTLE</div>
+  <div class="title-main">歴史バトル！<br>ニッポン史</div>
+  <div class="title-sub">縄文から近現代まで 全時代に挑め</div>
+  <div class="title-chars">
+    <div class="speed-lines"></div>
+    <div class="char-card"><div class="char-avatar"><div class="char-emoji">🏺</div><div class="char-name-tag">卑弥呼</div><div class="char-era-badge">弥生</div></div></div>
+    <div class="char-card"><div class="char-avatar"><div class="char-emoji">⚔️</div><div class="char-name-tag">織田信長</div><div class="char-era-badge">戦国</div></div></div>
+    <div class="char-card"><div class="char-avatar"><div class="char-emoji">🌊</div><div class="char-name-tag">坂本龍馬</div><div class="char-era-badge">幕末</div></div></div>
+  </div>
+  <div class="title-btns">
+    <button class="start-btn" onclick="showEraSelect()">は　じ　め　る</button>
+    <button class="sub-btn" onclick="showZukan()">📖 キャラクター図鑑</button>
+  </div>
+  <div class="version-tag">山川準拠 120問 NOTION連携</div>
+  <button class="admin-entry-btn" onclick="showPassword()">⚙ 管理</button>
+</div>
+
+<!-- ════ ERA SELECT ════ -->
+<div id="screen-era" class="screen">
+  <div class="era-header">
+    <div class="era-header-top">
+      <button class="back-btn" onclick="showTitle()">← もどる</button>
+      <h2>⛩ 時代を選べ</h2>
+    </div>
+    <p id="eraProgress">CHOOSE YOUR ERA — 全8時代</p>
+  </div>
+  <div class="era-timeline" id="eraTimeline"></div>
+</div>
+
+<!-- ════ DIFFICULTY ════ -->
+<div id="screen-difficulty" class="screen">
+  <div class="era-header">
+    <div class="era-header-top">
+      <button class="back-btn" onclick="showEraSelect()">← もどる</button>
+      <h2 id="diffEraTitle">難易度を選べ</h2>
+    </div>
+    <p>CHOOSE DIFFICULTY</p>
+  </div>
+  <div class="diff-grid">
+    <div class="diff-card easy" onclick="startQuiz('easy')">
+      <div class="diff-icon">🌱</div>
+      <div>
+        <div style="color:var(--green);font-size:13px;margin-bottom:2px">★☆☆</div>
+        <div class="diff-label" style="color:var(--green)">やさしい</div>
+        <div class="diff-desc">基本的な用語・人物・出来事<br>5問チャレンジ</div>
+      </div>
+    </div>
+    <div class="diff-card normal" onclick="startQuiz('normal')">
+      <div class="diff-icon">⚔️</div>
+      <div>
+        <div style="color:var(--gold);font-size:13px;margin-bottom:2px">★★☆</div>
+        <div class="diff-label" style="color:var(--gold)">ふつう</div>
+        <div class="diff-desc">時代の流れと背景を理解<br>5問チャレンジ</div>
+      </div>
+    </div>
+    <div class="diff-card hard" onclick="startQuiz('hard')">
+      <div class="diff-icon">🔥</div>
+      <div>
+        <div style="color:var(--red);font-size:13px;margin-bottom:2px">★★★</div>
+        <div class="diff-label" style="color:var(--red)">むずかしい</div>
+        <div class="diff-desc">山川教科書レベルの難問<br>5問チャレンジ</div>
+      </div>
+    </div>
+    <div class="diff-card all" onclick="startQuiz('all')">
+      <div class="diff-icon">🎲</div>
+      <div>
+        <div class="diff-label" style="color:#00aaff">ランダム全難易度</div>
+        <div class="diff-desc">全15問まとめてチャレンジ<br>全問正解でシークレットチャンス！</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ QUIZ ════ -->
+<div id="screen-quiz" class="screen">
+  <div class="quiz-topbar">
+    <div class="quiz-era-label" id="quizEraLabel"></div>
+    <div class="quiz-score-display">Score <span id="scoreDisplay">0</span></div>
+  </div>
+  <div class="timer-bar-wrap">
+    <div class="timer-bar-bg"><div class="timer-bar-fill" id="timerBar" style="width:100%"></div></div>
+    <div class="timer-text" id="timerText">20秒</div>
+  </div>
+  <div class="quiz-char-area">
+    <div class="quiz-char-figure">
+      <div class="quiz-char-emoji" id="quizCharEmoji">⚔️</div>
+      <div class="quiz-char-name" id="quizCharName"></div>
+    </div>
+    <div class="speech-bubble">
+      <div class="q-number" id="qNumber">問1 / 5</div>
+      <div class="q-text" id="qText"></div>
+    </div>
+  </div>
+  <div class="choices-area" id="choicesArea"></div>
+  <div class="hint-bubble" id="hintBubble"><div class="hint-label">💡 ヒント</div><div class="hint-text" id="hintText"></div></div>
+  <button class="next-q-btn" id="nextQBtn" onclick="nextQuestion()">次の問題へ →</button>
+</div>
+
+<!-- ════ RESULT ════ -->
+<div id="screen-result" class="screen">
+  <div class="result-burst"></div>
+  <div class="result-rank" id="resultRank">⭐</div>
+  <div class="result-title-label">称　号</div>
+  <div class="result-title-text" id="resultTitle"></div>
+  <div class="result-score-box">
+    <div class="result-score-num" id="resultScore">0</div>
+    <div class="result-score-label">SCORE</div>
+    <div class="result-correct-count" id="resultCorrect"></div>
+  </div>
+  <div class="result-gacha" id="resultGacha">
+    <div class="gacha-emoji" id="gachaEmoji"></div>
+    <div class="gacha-info">
+      <div class="gacha-unlock-label">🔓 キャラクター獲得！</div>
+      <div class="gacha-header">
+        <div class="gacha-rarity-badge" id="gachaRarity"></div>
+        <div class="gacha-new-badge" id="gachaNewBadge" style="display:none">NEW!</div>
+      </div>
+      <div class="gacha-name" id="gachaName"></div>
+      <div class="gacha-desc" id="gachaDesc"></div>
+      <div class="gacha-skill" id="gachaSkill"></div>
+    </div>
+  </div>
+  <div class="result-btns">
+    <button class="result-btn-primary" onclick="replayQuiz()">もう一度挑戦！</button>
+    <button class="result-btn-secondary" onclick="showDiffSelect()">難易度を変える</button>
+    <button class="result-btn-secondary" onclick="showEraSelect()">時代選択へもどる</button>
+    <button class="result-btn-secondary" onclick="showZukan()">📖 図鑑を見る</button>
+    <button class="result-btn-secondary" onclick="showTitle()">🏠 タイトルへ</button>
+  </div>
+</div>
+
+<!-- ════ ZUKAN ════ -->
+<div id="screen-zukan" class="screen">
+  <div class="era-header">
+    <div class="era-header-top">
+      <button class="back-btn" onclick="showTitle()">← もどる</button>
+      <h2>📖 キャラクター図鑑</h2>
+    </div>
+    <p id="zukanProgress"></p>
+  </div>
+  <div class="zukan-body" id="zukanBody"></div>
+</div>
+
+<!-- ════ PASSWORD ════ -->
+<div id="screen-password" class="screen">
+  <div class="pw-icon">🔐</div>
+  <div class="pw-title">管理者ログイン</div>
+  <div class="pw-sub">ADMIN ACCESS — パスワードを入力</div>
+  <div class="pw-input-wrap">
+    <input class="pw-input" id="pwInput" type="password" placeholder="パスワード" onkeydown="if(event.key==='Enter')checkPassword()">
+    <button class="pw-toggle" onclick="togglePwVisibility()" id="pwToggle">👁</button>
+  </div>
+  <div class="pw-error-msg" id="pwError"></div>
+  <button class="pw-submit-btn" onclick="checkPassword()">ログイン</button>
+  <button class="pw-back-btn" onclick="showTitle()">← タイトルにもどる</button>
+</div>
+
+<!-- ════ ADMIN ════ -->
+<div id="screen-admin" class="screen">
+  <div class="admin-header">
+    <div class="admin-header-top">
+      <button class="back-btn" onclick="showTitle()">← もどる</button>
+      <h2>⚙ 管理画面</h2>
+    </div>
+    <div class="admin-header-sub">ADMIN — NOTION連携 & データ管理</div>
+  </div>
+  <div class="admin-stats" id="adminStats"></div>
+  <div class="admin-section" style="margin-top:20px">
+    <div class="admin-section-title">🔗 Notion API連携</div>
+    <div class="form-group">
+      <label class="form-label">Notion API Key (secret_xxx...)</label>
+      <input type="text" class="form-input" id="notionApiInput" placeholder="secret_xxxxxxxx...">
+    </div>
+    <button class="admin-btn admin-btn-green" onclick="saveNotionKey()">APIキーを保存</button>
+    <button class="admin-btn admin-btn-gray" onclick="syncFromNotion()">手動同期 ↻</button>
+    <div class="admin-log" id="adminLog">管理ログ待機中...\n</div>
+  </div>
+  <div class="admin-section" style="margin-top:20px;padding-bottom:40px">
+    <div class="admin-section-title">⚠ データリセット</div>
+    <button class="admin-btn admin-btn-red" onclick="confirmReset('progress')">進行状況リセット</button>
+    <button class="admin-btn admin-btn-red" onclick="confirmReset('chars')">キャラリセット</button>
+    <button class="admin-btn admin-btn-red" onclick="confirmReset('all')">全データリセット</button>
+  </div>
+</div>
+
+<!-- CHAR MODAL -->
+<div class="char-modal" id="charModal" onclick="closeCharModal()">
+  <div class="char-modal-inner" onclick="event.stopPropagation()">
+    <div class="modal-emoji" id="modalEmoji"></div>
+    <div class="modal-rarity" id="modalRarity"></div>
+    <div class="modal-name" id="modalName"></div>
+    <div class="modal-desc" id="modalDesc"></div>
+    <div class="modal-skill" id="modalSkill"></div>
+    <button class="modal-close" onclick="closeCharModal()">閉じる</button>
+  </div>
+</div>
+
+<script>
+const ADMIN_PASSWORD = 'poopoo0730';
+const NOTION_DB_ID   = '518d967babdf4bddb687264b1999d75b';
+const LS = { PROGRESS:'nihonshi_progress_v2', UNLOCKED:'nihonshi_unlocked_v2', NOTION_KEY:'nihonshi_notion_key', NOTION_CACHE:'nihonshi_notion_cache' };
+const DIFF_LABELS = { easy:'★ やさしい', normal:'★★ ふつう', hard:'★★★ むずかしい' };
+
+const ERAS = [
+  { id:'jomon',    name:'縄文・弥生',     period:'〜3世紀',       emoji:'🏺', color:'#8B6914', glow:'rgba(139,105,20,0.4)', notionName:'縄文・弥生',     char:'卑弥呼',     charEmoji:'🏺' },
+  { id:'kofun',    name:'古墳・飛鳥',     period:'3〜8世紀',      emoji:'🗿', color:'#5a4f9a', glow:'rgba(90,79,154,0.4)',  notionName:'古墳・飛鳥',     char:'聖徳太子',   charEmoji:'📜' },
+  { id:'nara',     name:'奈良・平安',     period:'710〜1185年',   emoji:'🦌', color:'#3a7a3a', glow:'rgba(58,122,58,0.4)',  notionName:'奈良・平安',     char:'藤原道長',   charEmoji:'🌕' },
+  { id:'kamakura', name:'鎌倉・室町',     period:'1185〜1573年',  emoji:'⛩', color:'#7a2020', glow:'rgba(122,32,32,0.5)',  notionName:'鎌倉・室町',     char:'源頼朝',     charEmoji:'🏯' },
+  { id:'sengoku',  name:'戦国・安土桃山', period:'1467〜1615年',  emoji:'⚔️', color:'#cc2200', glow:'rgba(204,34,0,0.5)',   notionName:'戦国・安土桃山', char:'織田信長',   charEmoji:'⚔️' },
+  { id:'edo',      name:'江戸',           period:'1603〜1868年',  emoji:'🗻', color:'#1a5a8a', glow:'rgba(26,90,138,0.5)',  notionName:'江戸',           char:'徳川家康',   charEmoji:'🗻' },
+  { id:'meiji',    name:'明治・大正',     period:'1868〜1926年',  emoji:'🌅', color:'#9a4a00', glow:'rgba(154,74,0,0.5)',   notionName:'明治・大正',     char:'坂本龍馬',   charEmoji:'🌊' },
+  { id:'showa',    name:'昭和・近現代',   period:'1926年〜現代',  emoji:'🕊️', color:'#3a6a3a', glow:'rgba(58,106,58,0.5)',  notionName:'昭和・近現代',   char:'東郷平八郎', charEmoji:'🕊️' },
+];
+
+const ALL_CHARS = [
+  { id:'jomon_1',    eraId:'jomon',    rarity:'SR', emoji:'🏺', name:'縄文のまじない師',   desc:'深い森の中で土偶を作り続けた古の呪術師。自然の霊力を操り、集落を守護する。', skill:'土偶召喚 — 失点を1問帳消しにする神秘の力！' },
+  { id:'jomon_2',    eraId:'jomon',    rarity:'R',  emoji:'🐚', name:'貝塚の記憶番',       desc:'貝塚に残された記録を守り続ける語り部。食文化の歴史を知り尽くしている。', skill:'貝記録 — 正解時のポイントが2倍になる！' },
+  { id:'jomon_3',    eraId:'jomon',    rarity:'N',  emoji:'🌾', name:'弥生の稲作少女',     desc:'田んぼで汗を流す勤勉な農村の娘。稲作の知恵と水路の読み方を父から習った。', skill:'豊穣の舞 — ヒントを1回無料で使える！' },
+  { id:'jomon_4',    eraId:'jomon',    rarity:'N',  emoji:'🗝️', name:'邪馬台国の使者',     desc:'卑弥呼に仕え、魏の都へ貢ぎ物を届けた外交官。遠い海を渡った勇気の持ち主。', skill:'外交術 — 誤答のダメージを軽減する！' },
+  { id:'jomon_5',    eraId:'jomon',    rarity:'N',  emoji:'🔔', name:'銅鐸の職人',         desc:'精緻な銅鐸を鋳造し続けた弥生の名工。その音色は村の平和を呼ぶといわれた。', skill:'祭音 — 問題開始時に全員の士気を高める！' },
+  { id:'kofun_1',    eraId:'kofun',    rarity:'SR', emoji:'👑', name:'聖徳太子の霊光',     desc:'十七条の憲法を制定し、仏教を広めた偉大な摂政。一度に十人の声を聞いたという伝説も。', skill:'十人の声 — 次の問題の選択肢を2択に絞れる！' },
+  { id:'kofun_2',    eraId:'kofun',    rarity:'R',  emoji:'🕊️', name:'遣隋使の旅人',       desc:'危険な海を越えて隋に渡った外交使節。文化と知識を日本に持ち帰るために命がけだった。', skill:'海路の知恵 — ヒントの精度が上がる！' },
+  { id:'kofun_3',    eraId:'kofun',    rarity:'N',  emoji:'🪖', name:'大化の改新兵士',     desc:'中大兄皇子とともに蘇我氏を倒した改革の一員。律令国家への大転換を支えた無名の英雄。', skill:'改革の剣 — 正解連続3問でボーナス！' },
+  { id:'kofun_4',    eraId:'kofun',    rarity:'N',  emoji:'🛕', name:'法隆寺の大工',       desc:'世界最古の木造建築を手がけた飛鳥の名匠。1400年以上経った今も建物は現存している。', skill:'匠の技 — 建築知識で加点ボーナス！' },
+  { id:'kofun_5',    eraId:'kofun',    rarity:'N',  emoji:'🐎', name:'はにわの馬',         desc:'古墳に埋葬された素焼きの馬形埴輪。死者の魂とともに次の世界へ旅する守護の使者。', skill:'魂の疾走 — タイムボーナス2倍！' },
+  { id:'nara_1',     eraId:'nara',     rarity:'SR', emoji:'🦌', name:'奈良の大仏守',       desc:'東大寺の大仏を毎日清め続ける僧侶。仏の加護で天下泰平を願い続けた生涯。', skill:'仏陀の加護 — 不正解を正解に変える奇跡！' },
+  { id:'nara_2',     eraId:'nara',     rarity:'R',  emoji:'📜', name:'紫式部の侍女',       desc:'源氏物語の執筆を手伝った才女。美しい仮名文字で物語を書き写し続けた。', skill:'かな書法 — テキスト系問題に強化ボーナス！' },
+  { id:'nara_3',     eraId:'nara',     rarity:'N',  emoji:'⛵', name:'鑑真の渡来弟子',     desc:'盲目になりながらも日本へ渡り仏法を伝えた鑑真和上の高弟。不屈の精神を継承する。', skill:'不屈の信念 — 最後の問題で逆転できる！' },
+  { id:'nara_4',     eraId:'nara',     rarity:'N',  emoji:'🌺', name:'平安の歌詠み人',     desc:'百人一首に選ばれた歌人。恋と自然を詠んだ和歌は千年後も人々の心を打つ。', skill:'歌の力 — ヒントが詩的に表示される！' },
+  { id:'nara_5',     eraId:'nara',     rarity:'N',  emoji:'🍵', name:'空海の薬師',         desc:'高野山に籠り秘薬を調合し続けた真言宗の僧医。密教の神秘と医術を兼ね備える。', skill:'秘薬調合 — 残り時間が延長される！' },
+  { id:'kamakura_1', eraId:'kamakura', rarity:'SR', emoji:'🏹', name:'源義経の影武者',     desc:'壇ノ浦で平家を滅ぼした伝説の武将の影。奇策の天才として今も語り継がれる。', skill:'奇策 — ランダムに難問をやさしい問題に変える！' },
+  { id:'kamakura_2', eraId:'kamakura', rarity:'R',  emoji:'⛈️', name:'元寇の神風',         desc:'二度にわたる元の大軍を吹き飛ばした神秘の風。日本を守護する自然の力の化身。', skill:'神風加護 — 1問だけ誤答を帳消しにする！' },
+  { id:'kamakura_3', eraId:'kamakura', rarity:'N',  emoji:'🌿', name:'親鸞の旅僧',         desc:'悪人正機説を説きながら各地を放浪した浄土真宗の祖の弟子。民衆に仏の慈悲を伝えた。', skill:'悪人正機 — 誤答してもポイントが入る特殊技！' },
+  { id:'kamakura_4', eraId:'kamakura', rarity:'N',  emoji:'🏯', name:'足利義満の能役者',   desc:'金閣寺の庭で能を演じた室町時代の芸術家。世阿弥の教えを受けた幽玄の体現者。', skill:'幽玄の演技 — 正解時に美しいエフェクト発動！' },
+  { id:'kamakura_5', eraId:'kamakura', rarity:'N',  emoji:'📿', name:'御成敗式目の書記',   desc:'泰時の命で日本初の武家法典を書き記した法律家。公正な裁きの精神を後世に伝えた。', skill:'法の番人 — 問題文の誤りを指摘できる！' },
+  { id:'sengoku_1',  eraId:'sengoku',  rarity:'SR', emoji:'🔥', name:'織田信長の鉄砲隊長', desc:'長篠の戦いで三段撃ちを指揮した革命的軍事家。旧来の騎馬戦法を打ち破った天才戦術家。', skill:'三段撃ち — 連続正解で攻撃力が3倍に！' },
+  { id:'sengoku_2',  eraId:'sengoku',  rarity:'R',  emoji:'🌺', name:'千利休の茶人',       desc:'わびの心を極めた茶の湯の大家。秀吉に仕えながらも美意識を貫き通した芸術家。', skill:'わびさびの心 — 冷静に解いて正答率アップ！' },
+  { id:'sengoku_3',  eraId:'sengoku',  rarity:'N',  emoji:'⚓', name:'南蛮貿易商',         desc:'ポルトガルとの交易で富を築いた堺の商人。鉄砲・火薬・香辛料を日本にもたらした。', skill:'貿易の知識 — 外来語問題に強くなる！' },
+  { id:'sengoku_4',  eraId:'sengoku',  rarity:'N',  emoji:'🗺️', name:'太閤検地の測量士',   desc:'全国を歩き回り田畑の石高を測定した豊臣の役人。秀吉の天下統一を数字で支えた。', skill:'精密測量 — 数字・年号問題の正答率UP！' },
+  { id:'sengoku_5',  eraId:'sengoku',  rarity:'N',  emoji:'🏰', name:'安土城の建築士',     desc:'信長の夢を形にした革命的な城郭建築家。五重の天主閣は天下布武の象徴だった。', skill:'天守の眼 — 問題の難易度が見えるようになる！' },
+  { id:'edo_1',      eraId:'edo',      rarity:'SR', emoji:'🌸', name:'松尾芭蕉の弟子',     desc:'俳聖芭蕉とともに奥の細道を旅した俳人。自然の美を17文字に封じ込める達人。', skill:'俳句の力 — 心が落ち着き正答率10%UP！' },
+  { id:'edo_2',      eraId:'edo',      rarity:'R',  emoji:'🗾', name:'伊能忠敬の助手',     desc:'50歳を過ぎた師匠とともに全国を測量して歩いた弟子。努力と精密さを体現する人物。', skill:'精密測量術 — 答えの選択肢が1つ消える！' },
+  { id:'edo_3',      eraId:'edo',      rarity:'N',  emoji:'🎭', name:'歌舞伎役者',         desc:'江戸の庶民を魅了した人気役者。荒事・和事を演じ分け、江戸文化の中心にいた。', skill:'七変化 — 問題の形式が変わり新鮮になる！' },
+  { id:'edo_4',      eraId:'edo',      rarity:'N',  emoji:'📚', name:'本居宣長の書生',     desc:'古事記伝を書き記した国学者の弟子。もののあはれの心で日本文化の本質を探求した。', skill:'国学の眼 — 古典問題に特化ボーナス！' },
+  { id:'edo_5',      eraId:'edo',      rarity:'N',  emoji:'🏮', name:'元禄の瓦版屋',       desc:'元禄文化の最新情報を江戸中に伝えた情報屋。浮世草子・人形浄瑠璃の話題通。', skill:'瓦版速報 — 知識問題のヒントが自動表示！' },
+  { id:'meiji_1',    eraId:'meiji',    rarity:'SR', emoji:'🚂', name:'岩倉使節団の書記官', desc:'欧米12ヶ国を視察し近代化の知識を持ち帰った明治の俊英。日本の文明開化を設計した。', skill:'欧米の智 — 近代史問題の正答率2倍！' },
+  { id:'meiji_2',    eraId:'meiji',    rarity:'R',  emoji:'⚖️', name:'自由民権の演説者',   desc:'板垣退助の思想を地方に広めた政治活動家。民主主義の種を全国に蒔いた情熱の人。', skill:'民権演説 — 時間制限が延長される！' },
+  { id:'meiji_3',    eraId:'meiji',    rarity:'N',  emoji:'📰', name:'大正デモクラシーの記者', desc:'普通選挙を求めて筆を執り続けた記者。吉野作造の民本主義を広めた言論の士。', skill:'ペンの力 — 文章題の読解力がUP！' },
+  { id:'meiji_4',    eraId:'meiji',    rarity:'N',  emoji:'🏭', name:'富岡製糸場の工女',   desc:'群馬の官営工場で近代的な製糸技術を習得した少女。日本の産業革命を底で支えた。', skill:'勤勉の心 — 連続正解時の得点が増加！' },
+  { id:'meiji_5',    eraId:'meiji',    rarity:'N',  emoji:'⚓', name:'日露戦争の水兵',     desc:'東郷平八郎の艦隊でバルチック艦隊と戦った若き水兵。日本海海戦の奇跡を生き延びた。', skill:'海戦の勇気 — ピンチの時に逆転打が出やすい！' },
+  { id:'showa_1',    eraId:'showa',    rarity:'SR', emoji:'🕊️', name:'戦後復興の建築士',   desc:'焼け野原から日本を再建した技術者。1964年東京オリンピックの競技場も手がけた。', skill:'復興の力 — 誤答後に倍速で回復できる！' },
+  { id:'showa_2',    eraId:'showa',    rarity:'R',  emoji:'💹', name:'高度成長期の社員',   desc:'24時間働いたサラリーマン世代。日本を世界第2位の経済大国に押し上げた礎。', skill:'経済力 — 解答するごとに得点が複利で増える！' },
+  { id:'showa_3',    eraId:'showa',    rarity:'N',  emoji:'📡', name:'東京五輪の聖火ランナー', desc:'1964年の開会式で聖火を運んだ広島生まれの陸上選手。平和と希望を体現した走者。', skill:'聖火の光 — 全問正解時に特別ボーナス！' },
+  { id:'showa_4',    eraId:'showa',    rarity:'N',  emoji:'🌺', name:'安保闘争の学生',     desc:'1960年代に時代と格闘した全学連の活動家。民主主義への熱い情熱を持ち続けた。', skill:'時代の闘士 — 現代史問題の正答率UP！' },
+  { id:'showa_5',    eraId:'showa',    rarity:'N',  emoji:'🌸', name:'ヒロシマの乙女',     desc:'広島・長崎への原爆投下を生き延びた人々の総称。平和の大切さを語り継ぐ語り部として後世に伝え続けている。', skill:'平和の祈り — 戦闘を終わらせる最後の力！' },
+];
+
+const SECRET_CHARS = [
+  { id:'secret_amaterasu', name:'天照大神',   emoji:'👑', rarity:'SECRET', desc:'高天原を統べる太陽神。日本の神話の最高神であり、天皇家の祖先神とされる。古事記・日本書紀に記された神々の頂点。', skill:'神話の力 — すべての問題の正答率が劇的にアップ！' },
+  { id:'secret_ryoma',     name:'龍馬の亡霊', emoji:'🐉', rarity:'SECRET', desc:'日本の夜明けを夢見た坂本龍馬の亡霊。薩長同盟・大政奉還を陰から支えた時代の鍵。暗殺されてもなお日本の行く末を見守り続ける。', skill:'船中八策 — 間違った選択肢を全部正解に変える荒業！' },
+  { id:'secret_yamato',    name:'ヤマトタケル', emoji:'⛩', rarity:'SECRET', desc:'熊襲・蝦夷を征服した伝説の皇子。草薙の剣を持ち、日本列島統一への道を切り開いた。古事記最大の英雄神話の主人公。', skill:'草薙の剣 — 敵の問題をすべて薙ぎ払う一撃必殺！' },
+];
+
+// STATE
+let currentEra=null, currentDiff=null, currentQuestions=[], currentQIndex=0;
+let score=0, correctCount=0, combo=0, timerInterval=null, timeLeft=20, answered=false;
+let notionQuestions={};
+
+// STORAGE
+function loadProgress(){try{return JSON.parse(localStorage.getItem(LS.PROGRESS)||'{}')}catch{return{}}}
+function saveProgress(p){localStorage.setItem(LS.PROGRESS,JSON.stringify(p))}
+function loadUnlocked(){try{return new Set(JSON.parse(localStorage.getItem(LS.UNLOCKED)||'[]'))}catch{return new Set()}}
+function saveUnlocked(s){localStorage.setItem(LS.UNLOCKED,JSON.stringify([...s]))}
+function getNotionKey(){return localStorage.getItem(LS.NOTION_KEY)||''}
+function getNotionCache(){try{return JSON.parse(localStorage.getItem(LS.NOTION_CACHE)||'null')}catch{return null}}
+function setNotionCache(d){localStorage.setItem(LS.NOTION_CACHE,JSON.stringify(d))}
+
+// NAVIGATION
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function showTitle(){showScreen('screen-title')}
+function showEraSelect(){showScreen('screen-era');renderEraList()}
+function showDiffSelect(){showScreen('screen-difficulty')}
+function showZukan(){showScreen('screen-zukan');renderZukan()}
+function showPassword(){
+  showScreen('screen-password');
+  const inp=document.getElementById('pwInput');inp.value='';inp.type='password';
+  document.getElementById('pwError').textContent='';setTimeout(()=>inp.focus(),300);
+}
+function showAdmin(){showScreen('screen-admin');renderAdmin()}
+
+// ERA LIST
+function renderEraList(){
+  const p=loadProgress();
+  const cleared=ERAS.filter(e=>p[e.id]?.cleared).length;
+  document.getElementById('eraProgress').textContent=`CHOOSE YOUR ERA — ${cleared}/8クリア`;
+  const tl=document.getElementById('eraTimeline'); tl.innerHTML='';
+  ERAS.forEach(era=>{
+    const ep=p[era.id]||{};
+    const item=document.createElement('div');
+    item.className='era-item'+(ep.cleared?' cleared':'');
+    item.innerHTML=`
+      <div class="era-dot" style="border-color:${era.color};background:rgba(${hexRgb(era.color)},.15);box-shadow:0 0 12px ${era.glow}"><span>${era.emoji}</span></div>
+      <div class="era-card-inner">
+        <div class="era-card-name">${era.name}</div>
+        <div class="era-card-period">${era.period}</div>
+        <div class="era-card-meta">
+          <div style="font-size:16px">${ep.cleared?'✅':''}</div>
+          <div class="era-card-count">${ep.playCount?ep.playCount+'回':'未プレイ'}</div>
+        </div>
+        <div class="era-card-bar" style="background:${era.color};width:${ep.cleared?100:0}%"></div>
+      </div>`;
+    item.addEventListener('click',()=>selectEra(era));
+    tl.appendChild(item);
+  });
+}
+function hexRgb(h){const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return`${r},${g},${b}`}
+
+function selectEra(era){
+  currentEra=era;
+  document.getElementById('diffEraTitle').textContent=era.emoji+' '+era.name;
+  showDiffSelect();
+}
+
+// QUESTIONS
+function getQuestions(era,diff){
+  const cached=notionQuestions[era.notionName]||[];
+  if(!cached.length) return getFallback(era,diff);
+  let pool=diff==='all'?cached:cached.filter(q=>q.difficulty===DIFF_LABELS[diff]);
+  if(!pool.length) return getFallback(era,diff);
+  return shuffle([...pool]).slice(0,diff==='all'?15:5);
+}
+function getFallback(era,diff){
+  return[{question:`【${era.name}】Notionから問題が読み込めませんでした。管理画面でAPIキーを設定してください。`,choices:['設定方法はREADMEを参照','管理画面からAPIキー入力','Notionに問題を追加','この選択肢はダミー'],answer:1,hint:'管理画面 → Notion API連携 → APIキーを保存 → 手動同期'}];
+}
+
+// QUIZ
+function startQuiz(diff){
+  currentDiff=diff; currentQuestions=getQuestions(currentEra,diff);
+  currentQIndex=0; score=0; correctCount=0; combo=0;
+  document.getElementById('quizEraLabel').textContent=currentEra.name;
+  document.getElementById('quizCharEmoji').textContent=currentEra.charEmoji;
+  document.getElementById('quizCharName').textContent=currentEra.char;
+  showScreen('screen-quiz'); renderQuestion();
+}
+function renderQuestion(){
+  clearTimer(); answered=false;
+  document.getElementById('hintBubble').classList.remove('visible');
+  document.getElementById('nextQBtn').style.display='none';
+  const q=currentQuestions[currentQIndex];
+  document.getElementById('qNumber').textContent=`問${currentQIndex+1} / ${currentQuestions.length}`;
+  document.getElementById('qText').textContent=q.question;
+  document.getElementById('scoreDisplay').textContent=score;
+  const area=document.getElementById('choicesArea'); area.innerHTML='';
+  ['Ａ','Ｂ','Ｃ','Ｄ'].forEach((lbl,i)=>{
+    const btn=document.createElement('button'); btn.className='choice-btn';
+    btn.innerHTML=`<span class="choice-label">${lbl}</span>${q.choices[i]}`;
+    btn.addEventListener('click',()=>selectAnswer(i)); area.appendChild(btn);
+  });
+  startTimer();
+}
+function startTimer(){
+  timeLeft=20; updateTimerUI();
+  timerInterval=setInterval(()=>{timeLeft--;updateTimerUI();if(timeLeft<=0){clearTimer();if(!answered)timeUp();}},1000);
+}
+function updateTimerUI(){
+  const pct=(timeLeft/20)*100, bar=document.getElementById('timerBar');
+  bar.style.width=pct+'%';
+  bar.style.background=pct<30?'var(--red)':pct<60?'linear-gradient(90deg,#ff8800,var(--accent))':'linear-gradient(90deg,var(--gold),var(--accent))';
+  document.getElementById('timerText').textContent=timeLeft+'秒';
+}
+function clearTimer(){if(timerInterval){clearInterval(timerInterval);timerInterval=null;}}
+function timeUp(){
+  answered=true; combo=0;
+  const q=currentQuestions[currentQIndex];
+  document.querySelectorAll('.choice-btn').forEach((b,i)=>{b.classList.add('disabled');if(i===q.answer)b.classList.add('correct');});
+  document.getElementById('nextQBtn').style.display='block';
+}
+function selectAnswer(sel){
+  if(answered)return; answered=true; clearTimer();
+  const q=currentQuestions[currentQIndex];
+  const btns=document.querySelectorAll('.choice-btn'); btns.forEach(b=>b.classList.add('disabled'));
+  if(sel===q.answer){
+    btns[sel].classList.add('correct'); correctCount++; combo++;
+    score+=100+(timeLeft*5)+(combo>1?combo*20:0);
+    spawnParticles(btns[sel]); if(combo>=2)showCombo(combo);
+  } else {
+    btns[sel].classList.add('wrong'); btns[q.answer].classList.add('correct'); combo=0;
+    if(q.hint){document.getElementById('hintText').textContent=q.hint;document.getElementById('hintBubble').classList.add('visible');}
+  }
+  document.getElementById('scoreDisplay').textContent=score;
+  document.getElementById('nextQBtn').style.display='block';
+}
+function nextQuestion(){currentQIndex++;if(currentQIndex>=currentQuestions.length)showResult();else renderQuestion();}
+
+// RESULT
+function showResult(){
+  showScreen('screen-result');
+  const total=currentQuestions.length, pct=correctCount/total;
+  let rank,title;
+  if(pct===1){rank='🏆';title='天　下　人';}
+  else if(pct>=.8){rank='⭐⭐';title='歴史の使い手';}
+  else if(pct>=.6){rank='⭐';title='歴史の見習い';}
+  else if(pct>=.4){rank='📚';title='まだまだ修行中';}
+  else{rank='💀';title='敗者復活を狙え！';}
+  document.getElementById('resultRank').textContent=rank;
+  document.getElementById('resultTitle').textContent=title;
+  document.getElementById('resultScore').textContent=score;
+  document.getElementById('resultCorrect').textContent=`${total}問中 ${correctCount}問正解`;
+  // save progress
+  const p=loadProgress(); if(!p[currentEra.id])p[currentEra.id]={};
+  const ep=p[currentEra.id];
+  ep.playCount=(ep.playCount||0)+1; ep.bestScore=Math.max(ep.bestScore||0,score);
+  if(pct===1){if(currentDiff==='all')ep.cleared=true;else{ep[`cleared_${currentDiff}`]=true;if(ep.cleared_easy&&ep.cleared_normal&&ep.cleared_hard)ep.cleared=true;}}
+  saveProgress(p);
+  // gacha
+  const char=drawCharacter(pct);
+  if(char)showGacha(char);else document.getElementById('resultGacha').classList.remove('visible');
+}
+function drawCharacter(pct){
+  if(pct<.4)return null;
+  const p=loadProgress();
+  const allCleared=ERAS.every(e=>p[e.id]?.cleared);
+  const isPerfect=correctCount===currentQuestions.length;
+  if(allCleared&&isPerfect&&Math.random()<.05){
+    const u=loadUnlocked(),locked=SECRET_CHARS.filter(c=>!u.has(c.id));
+    if(locked.length){const char=locked[Math.floor(Math.random()*locked.length)];u.add(char.id);saveUnlocked(u);return{...char,isNew:true};}
+  }
+  const eraChars=ALL_CHARS.filter(c=>c.eraId===currentEra.id);
+  const weights=eraChars.map(c=>c.rarity==='SR'?10:c.rarity==='R'?30:60);
+  const totalW=weights.reduce((a,b)=>a+b,0); let r=Math.random()*totalW;
+  let chosen=eraChars[eraChars.length-1];
+  for(let i=0;i<eraChars.length;i++){r-=weights[i];if(r<=0){chosen=eraChars[i];break;}}
+  const u=loadUnlocked(),isNew=!u.has(chosen.id);
+  u.add(chosen.id);saveUnlocked(u);return{...chosen,isNew};
+}
+function showGacha(char){
+  document.getElementById('resultGacha').classList.add('visible');
+  document.getElementById('gachaEmoji').textContent=char.emoji;
+  const rb=document.getElementById('gachaRarity'); rb.textContent=char.rarity; rb.className=`gacha-rarity-badge ${char.rarity}`;
+  document.getElementById('gachaNewBadge').style.display=char.isNew?'inline-block':'none';
+  document.getElementById('gachaName').textContent=char.name;
+  document.getElementById('gachaDesc').textContent=char.desc;
+  document.getElementById('gachaSkill').textContent=char.skill;
+}
+function replayQuiz(){startQuiz(currentDiff);}
+
+// ZUKAN
+function renderZukan(){
+  const u=loadUnlocked(),p=loadProgress();
+  const total=ALL_CHARS.length+SECRET_CHARS.length;
+  document.getElementById('zukanProgress').textContent=`${u.size} / ${total} 体獲得`;
+  let html='';
+  ERAS.forEach(era=>{
+    const eraChars=ALL_CHARS.filter(c=>c.eraId===era.id);
+    const uc=eraChars.filter(c=>u.has(c.id)).length;
+    html+=`<div class="zukan-era-section"><div class="zukan-era-header"><span class="zukan-era-emoji">${era.emoji}</span><span class="zukan-era-name">${era.name}</span><span class="zukan-era-count">${uc}/${eraChars.length}</span></div><div class="zukan-chars-grid">`;
+    eraChars.forEach(c=>{
+      const ul=u.has(c.id);
+      html+=`<div class="zukan-char-card ${ul?'unlocked '+c.rarity:'locked'}" ${ul?`onclick="showCharModal('${c.id}','normal')"`:''}>${ul?c.emoji:'❔'}<div class="zukan-char-rarity ${ul?c.rarity:''}">${ul?c.rarity:''}</div><div class="zukan-char-label">${ul?c.name:'?'}</div></div>`;
+    });
+    html+='</div></div>';
+  });
+  // シークレット欄は最後
+  const allCleared=ERAS.every(e=>p[e.id]?.cleared);
+  html+='<div class="zukan-secret-section"><div class="zukan-secret-title">✨ シークレットキャラクター</div>';
+  html+='<div class="zukan-secret-chars">';
+  SECRET_CHARS.forEach(c=>{
+    const ul=u.has(c.id);
+    html+=`<div class="secret-char-card ${ul?'unlocked':'locked-secret'}" ${ul?`onclick="showCharModal('${c.id}','secret')"`:''}><div class="secret-emoji">${ul?c.emoji:'❓'}</div><div class="secret-name">${ul?c.name:'???'}</div><div class="secret-hint">${ul?'獲得済み ✓':'特定の条件を満たすと出現'}</div></div>`;
+  });
+  html+='</div></div>';
+  document.getElementById('zukanBody').innerHTML=html;
+}
+function showCharModal(id,type){
+  const char=type==='secret'?SECRET_CHARS.find(c=>c.id===id):ALL_CHARS.find(c=>c.id===id);
+  if(!char)return;
+  document.getElementById('modalEmoji').textContent=char.emoji;
+  const rb=document.getElementById('modalRarity'); rb.textContent=char.rarity; rb.className=`modal-rarity ${char.rarity}`;
+  document.getElementById('modalName').textContent=char.name;
+  document.getElementById('modalDesc').textContent=char.desc;
+  document.getElementById('modalSkill').textContent=char.skill;
+  document.getElementById('charModal').classList.add('active');
+}
+function closeCharModal(){document.getElementById('charModal').classList.remove('active');}
+
+// PASSWORD / ADMIN
+function togglePwVisibility(){
+  const inp=document.getElementById('pwInput'),btn=document.getElementById('pwToggle');
+  inp.type=inp.type==='password'?'text':'password'; btn.textContent=inp.type==='password'?'👁':'🙈';
+}
+function checkPassword(){
+  const val=document.getElementById('pwInput').value, inp=document.getElementById('pwInput');
+  if(val===ADMIN_PASSWORD){showAdmin();}
+  else{inp.classList.remove('error');void inp.offsetWidth;inp.classList.add('error');document.getElementById('pwError').textContent='パスワードが違います';inp.value='';setTimeout(()=>inp.classList.remove('error'),500);}
+}
+function renderAdmin(){
+  const p=loadProgress(),u=loadUnlocked();
+  const cleared=ERAS.filter(e=>p[e.id]?.cleared).length;
+  const cache=getNotionCache(),cc=cache?Object.values(cache).reduce((a,e)=>a+e.length,0):0;
+  document.getElementById('adminStats').innerHTML=`
+    <div class="admin-stat-card"><div class="admin-stat-num">${cleared}</div><div class="admin-stat-label">時代クリア</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-num">${u.size}</div><div class="admin-stat-label">キャラ獲得</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-num">${cc}</div><div class="admin-stat-label">キャッシュ問題</div></div>
+    <div class="admin-stat-card"><div class="admin-stat-num">${getNotionKey()?'✓':'×'}</div><div class="admin-stat-label">NotionAPI</div></div>
+  `;
+  const key=getNotionKey(); if(key)document.getElementById('notionApiInput').value=key;
+}
+function saveNotionKey(){
+  const key=document.getElementById('notionApiInput').value.trim();
+  if(!key.startsWith('secret_')){adminLog('❌ APIキーは secret_ で始まる必要があります');return;}
+  localStorage.setItem(LS.NOTION_KEY,key); adminLog('✅ APIキーを保存しました');
+}
+async function syncFromNotion(){
+  const key=getNotionKey(); if(!key){adminLog('❌ APIキーが設定されていません');return;}
+  adminLog('🔄 Notionから同期中...'); showLoading('Notion同期中...');
+  try{
+    const data=await fetchAllNotionQuestions(key); setNotionCache(data); notionQuestions=data;
+    const total=Object.values(data).reduce((a,e)=>a+e.length,0);
+    adminLog(`✅ 同期完了！ ${total}問を取得`); renderAdmin();
+  }catch(e){adminLog(`❌ エラー: ${e.message}`);}
+  finally{hideLoading();}
+}
+async function fetchAllNotionQuestions(apiKey){
+  const result={}; let hasMore=true,cursor;
+  while(hasMore){
+    const body={filter:{property:'ステータス',select:{equals:'完成'}},page_size:100};
+    if(cursor)body.start_cursor=cursor;
+    const res=await fetch(`https://api.notion.com/v1/databases/${NOTION_DB_ID}/query`,{method:'POST',headers:{'Authorization':`Bearer ${apiKey}`,'Notion-Version':'2022-06-28','Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    const json=await res.json();
+    json.results.forEach(page=>{
+      const pr=page.properties,era=pr['時代']?.select?.name; if(!era)return;
+      const q=pr['問題文']?.title?.[0]?.plain_text||'';
+      const ca=pr['選択肢A']?.rich_text?.[0]?.plain_text||'',cb=pr['選択肢B']?.rich_text?.[0]?.plain_text||'',cc2=pr['選択肢C']?.rich_text?.[0]?.plain_text||'',cd=pr['選択肢D']?.rich_text?.[0]?.plain_text||'';
+      const ans=pr['正解']?.select?.name||'A',hint=pr['ヒント文']?.rich_text?.[0]?.plain_text||'',diff=pr['難易度']?.select?.name||'';
+      if(!result[era])result[era]=[];
+      result[era].push({question:q,choices:[ca,cb,cc2,cd],answer:{A:0,B:1,C:2,D:3}[ans]??0,hint,difficulty:diff});
+    });
+    hasMore=json.has_more; cursor=json.next_cursor;
+  }
+  return result;
+}
+function adminLog(msg){const el=document.getElementById('adminLog');el.textContent+=msg+'\n';el.scrollTop=el.scrollHeight;}
+function confirmReset(type){
+  const labels={progress:'進行状況',chars:'キャラデータ',all:'全データ'};
+  if(!confirm(`${labels[type]}をリセットしますか？取り消せません。`))return;
+  if(type==='progress'||type==='all')localStorage.removeItem(LS.PROGRESS);
+  if(type==='chars'||type==='all')localStorage.removeItem(LS.UNLOCKED);
+  if(type==='all'){localStorage.removeItem(LS.NOTION_KEY);localStorage.removeItem(LS.NOTION_CACHE);notionQuestions={};}
+  adminLog(`✅ ${labels[type]}をリセットしました`); renderAdmin(); showToast(`${labels[type]}をリセットしました`);
+}
+
+// COMBO / PARTICLES
+function showCombo(n){
+  const el=document.getElementById('comboFlash');
+  el.textContent={2:'COMBO!',3:'GREAT!!',4:'AMAZING!!!',5:'PERFECT!!!!'}[n]||`${n}連続！`;
+  el.style.color={2:'#ffcc00',3:'#ff8800',4:'#ff4422',5:'#ff00ff'}[n]||'#ff00ff';
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+}
+function spawnParticles(el){
+  const rect=el.getBoundingClientRect(),cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+  for(let i=0;i<12;i++){
+    const p=document.createElement('div'); p.className='particle';
+    const angle=(i/12)*360,dist=60+Math.random()*60;
+    p.style.cssText=`left:${cx}px;top:${cy}px;background:${['#ffcc00','#ff4422','#00c864'][i%3]};--tx:${Math.cos(angle*Math.PI/180)*dist}px;--ty:${Math.sin(angle*Math.PI/180)*dist}px;`;
+    document.body.appendChild(p); setTimeout(()=>p.remove(),1000);
+  }
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+let toastTimer=null;
+function showToast(msg,err=false){
+  const el=document.getElementById('toast'); el.textContent=msg; el.classList.toggle('error-toast',err); el.classList.add('show');
+  if(toastTimer)clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
+}
+function showLoading(t='読み込み中…'){document.getElementById('loadingText').textContent=t;document.getElementById('loadingOverlay').classList.add('visible');}
+function hideLoading(){document.getElementById('loadingOverlay').classList.remove('visible');}
+
+// BOOT
+(async function(){
+  const cache=getNotionCache();
+  if(cache){notionQuestions=cache;const t=Object.values(cache).reduce((a,e)=>a+e.length,0);if(t>0)showToast(`📚 ${t}問を読み込みました`);}
+  renderEraList();
+  const key=getNotionKey();
+  if(key)(async()=>{try{const d=await fetchAllNotionQuestions(key);setNotionCache(d);notionQuestions=d;const t=Object.values(d).reduce((a,e)=>a+e.length,0);if(t>0)showToast(`✅ Notion同期完了 (${t}問)`);}catch(e){console.warn('sync fail:',e.message);}})();
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
