@@ -810,14 +810,14 @@ function renderZukan(){
     html+=`<div class="zukan-era-section"><div class="zukan-era-header"><span class="zukan-era-emoji">${era.emoji}</span><span class="zukan-era-name">${era.name}</span><span class="zukan-era-count">${uc}/${eraChars.length}</span></div><div class="zukan-chars-grid">`;
     eraChars.forEach(c=>{
       const ul=u.has(c.id);
-      html+=`<div class="zukan-char-card ${ul?'unlocked '+c.rarity:'locked'}" ${ul?`onclick="showCharModal('${c.id}','normal')"`:''}>${ul?`<img src="./images/chars/${c.id}.svg" alt="${c.name}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">`:'❔'}<div class="zukan-char-rarity ${ul?c.rarity:''}">${ul?c.rarity:''}</div><div class="zukan-char-label">${ul?c.name:'?'}</div></div>`;
+      html+=`<div class="zukan-char-card ${ul?'unlocked '+c.rarity:'locked'}" ${ul?`onclick="showCharModal('${c.id}','normal')"`:''}>${ul?`<img src="./images/chars/${c.id}.png" alt="${c.name}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">`:'❔'}<div class="zukan-char-rarity ${ul?c.rarity:''}">${ul?c.rarity:''}</div><div class="zukan-char-label">${ul?c.name:'?'}</div></div>`;
     });
     html+='</div></div>';
   });
   html+='<div class="zukan-secret-section"><div class="zukan-secret-title">✨ シークレットキャラクター</div><div class="zukan-secret-chars">';
   SECRET_CHARS.forEach(c=>{
     const ul=u.has(c.id);
-    html+=`<div class="secret-char-card ${ul?'unlocked':'locked-secret'}" ${ul?`onclick="showCharModal('${c.id}','secret')"`:''}><div class="secret-emoji">${ul?`<img src="./images/chars/${c.id}.svg" alt="${c.name}" style="width:70px;height:90px;object-fit:cover;border-radius:6px;">`:'❓'}</div><div class="secret-name">${ul?c.name:'???'}</div><div class="secret-hint">${ul?'獲得済み ✓':'特定の条件を満たすと出現'}</div></div>`;
+    html+=`<div class="secret-char-card ${ul?'unlocked':'locked-secret'}" ${ul?`onclick="showCharModal('${c.id}','secret')"`:''}><div class="secret-emoji">${ul?`<img src="./images/chars/${c.id}.png" alt="${c.name}" style="width:70px;height:90px;object-fit:cover;border-radius:6px;">`:'❓'}</div><div class="secret-name">${ul?c.name:'???'}</div><div class="secret-hint">${ul?'獲得済み ✓':'特定の条件を満たすと出現'}</div></div>`;
   });
   html+='</div></div>';
   document.getElementById('zukanBody').innerHTML=html;
@@ -825,7 +825,7 @@ function renderZukan(){
 function showCharModal(id,type){
   const char=type==='secret'?SECRET_CHARS.find(c=>c.id===id):ALL_CHARS.find(c=>c.id===id);
   if(!char) return;
-  document.getElementById('modalEmoji').innerHTML=`<img src="./images/chars/${id}.svg" alt="${char.name}" style="width:90px;height:116px;object-fit:cover;border-radius:8px;">`;
+  document.getElementById('modalEmoji').innerHTML=`<img src="./images/chars/${id}.png" alt="${char.name}" style="width:90px;height:116px;object-fit:cover;border-radius:8px;">`;
   const rb=document.getElementById('modalRarity'); rb.textContent=char.rarity; rb.className=`modal-rarity ${char.rarity}`;
   document.getElementById('modalName').textContent=char.name;
   document.getElementById('modalDesc').textContent=char.desc;
