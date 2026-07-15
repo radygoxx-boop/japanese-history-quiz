@@ -475,7 +475,7 @@
       <div>
         <div style="color:var(--red);font-size:13px;margin-bottom:2px">★★★</div>
         <div class="diff-label" style="color:var(--red)">むずかしい</div>
-        <div class="diff-desc">山川教科書レベルの難問<br>5問チャレンジ</div>
+        <div class="diff-desc">本番レベルの難問<br>5問チャレンジ</div>
       </div>
     </div>
     <div class="diff-card all" onclick="startQuiz('all')">
@@ -586,11 +586,11 @@ const ERAS = [
 ];
 
 const ALL_CHARS = [
-  { id:'jomon_1',    eraId:'jomon',    rarity:'SR', emoji:'🏺', name:'縄文のまじない師',       desc:'深い森の中で土偶を作り続けた古の呪術師。自然の霊力を操り、集落を守護する。',                                         skill:'土偶召喚 — 失点を1問帳消しにする神秘の力！' },
-  { id:'jomon_2',    eraId:'jomon',    rarity:'R',  emoji:'🐚', name:'貝塚の記憶番',           desc:'貝塚に残された記録を守り続ける語り部。食文化の歴史を知り尽くしている。',                                             skill:'貝記録 — 正解時のポイントが2倍になる！' },
-  { id:'jomon_3',    eraId:'jomon',    rarity:'N',  emoji:'🌾', name:'弥生の稲作少女',         desc:'田んぼで汗を流す勤勉な農村の娘。稲作の知恵と水路の読み方を父から習った。',                                           skill:'豊穣の舞 — ヒントを1回無料で使える！' },
-  { id:'jomon_4',    eraId:'jomon',    rarity:'N',  emoji:'🗝️', name:'邪馬台国の使者',         desc:'卑弥呼に仕え、魏の都へ貢ぎ物を届けた外交官。遠い海を渡った勇気の持ち主。',                                           skill:'外交術 — 誤答のダメージを軽減する！' },
-  { id:'jomon_5',    eraId:'jomon',    rarity:'N',  emoji:'🔔', name:'銅鐸の職人',             desc:'精緻な銅鐸を鋳造し続けた弥生の名工。その音色は村の平和を呼ぶといわれた。',                                           skill:'祭音 — 問題開始時に全員の士気を高める！' },
+  { id:'jomon_1',    eraId:'jomon',    rarity:'SR', emoji:'🏺', name:'旧石器の狩人',       desc:'打製石器を手に、大型動物を追い続けた日本列島最古のハンター。',                                         skill:'狩猟の極意 — 集中力を極限まで高め、チャンスを逃さない' },
+  { id:'jomon_2',    eraId:'jomon',    rarity:'R',  emoji:'🐚', name:'祈りの遮光器土偶',           desc:'豊作や安産、無病息災への願いを込めて作られた、縄文の神秘を宿す守り神。',                                             skill:'豊穣の祈り — 今の努力をもって後に大きな収穫をもたらす' },
+  { id:'jomon_3',    eraId:'jomon',    rarity:'N',  emoji:'🌾', name:'神秘の勾玉',         desc:'魔除けや権力の象徴として大切にされた、古代日本を代表する装身具。',                                           skill:'魔除けの加護 — 怪我や病気から身を守り、持ち主の運気を高める' },
+  { id:'jomon_4',    eraId:'jomon',    rarity:'N',  emoji:'🗝️', name:'弥生の青銅器',         desc:'銅鐸・銅矛・銅剣・銅鏡。祭りや権威の象徴として用いられた、弥生時代を代表する青銅器。',                                           skill:'祭祀の力 — 所持数と種類が増えるほど、持ち主の権力を高める' },
+  { id:'jomon_5',    eraId:'jomon',    rarity:'N',  emoji:'🔔', name:'卑弥呼',             desc:'『魏志倭人伝』に記された、不思議な力で民衆をまとめた謎多き倭国の女王。',                                           skill:'神秘の声 — 周囲の心を惹きつけ、持ち主のカリスマ性を高める' },
   { id:'kofun_1',    eraId:'kofun',    rarity:'SR', emoji:'👑', name:'聖徳太子の霊光',         desc:'十七条の憲法を制定し、仏教を広めた偉大な摂政。一度に十人の声を聞いたという伝説も。',                                 skill:'十人の声 — 次の問題の選択肢を2択に絞れる！' },
   { id:'kofun_2',    eraId:'kofun',    rarity:'R',  emoji:'🕊️', name:'遣隋使の旅人',           desc:'危険な海を越えて隋に渡った外交使節。文化と知識を日本に持ち帰るために命がけだった。',                                 skill:'海路の知恵 — ヒントの精度が上がる！' },
   { id:'kofun_3',    eraId:'kofun',    rarity:'N',  emoji:'🪖', name:'大化の改新兵士',         desc:'中大兄皇子とともに蘇我氏を倒した改革の一員。律令国家への大転換を支えた無名の英雄。',                                 skill:'改革の剣 — 正解連続3問でボーナス！' },
@@ -758,10 +758,10 @@ function showResult(){
   const total=currentQuestions.length, pct=correctCount/total;
   let rank,title;
   if(pct===1)      { rank='🏆'; title='天　下　人'; }
-  else if(pct>=.8) { rank='⭐⭐'; title='歴史の使い手'; }
-  else if(pct>=.6) { rank='⭐'; title='歴史の見習い'; }
-  else if(pct>=.4) { rank='📚'; title='まだまだ修行中'; }
-  else             { rank='💀'; title='敗者復活を狙え！'; }
+  else if(pct>=.8) { rank='⭐⭐'; title='将軍'; }
+  else if(pct>=.6) { rank='⭐'; title='大名'; }
+  else if(pct>=.4) { rank='📚'; title='武将'; }
+  else             { rank='💀'; title='足軽'; }
   document.getElementById('resultRank').textContent=rank;
   document.getElementById('resultTitle').textContent=title;
   document.getElementById('resultScore').textContent=score;
